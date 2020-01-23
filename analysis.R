@@ -19,6 +19,8 @@ dir.create('./output/mammals/')
 dir.create('./output/birds/')
 dir.create('./output/mammals/trees/')
 dir.create('./output/birds/trees/')
+dir.create('./output/mammals/tables/')
+dir.create('./output/birds/tables/')
 
 ####1) PHYLOGENETIC DATA PREP####
 ####this is taken from github.com/javierigea/hotspots_mambird_paper/
@@ -87,18 +89,172 @@ bird100trees<-read.tree('./output/birds/trees/BirdzillaEricsonAllTrees_100.trees
 bird100trees.IUCN<-lapply(bird100trees,function(x){x$tip.label<-iucn.taxonomy.synonyms(species=x$tip.label,dictionaryfile = './raw_data/IUCNTaxonomy_Aves_30082017_version2017-1.csv');tip.duplicated.bird.tree.IUCN<-return.duplicate.tips(x);x<-drop.tip(x,tip.duplicated.bird.tree.IUCN);return(x)})
 write.nexus(bird100trees.IUCN,file='./output/birds/trees/BirdzillaEricsonAllTrees_100_IUCN.trees')
 
-####2)diversification rates####
-#DR
+####2)SPECIES SPATIAL DATA PREP####
+####this is taken from github.com/javierigea/hotspots_mambird_paper/
+#####overlap mammal IUCN ranges layers with grid####
+#run './R/overlap_realms_mammals_grid_cluster.R' on hydrogen
+#/scripts/conscriptoR /home/ji247/hotspots_vertebrates/overlap_realms_mammals_grid_cluster.R -p32 (#for 32 cores,it takes ~20 hours)
+#move the *_realms_species_gridoccurrence_table.txt and *_richness_grid_table.txt to ./output/mammals/tables/
+#merge realm based data to world level
+source('./R/merging_all_realm_occurrences.R')
+merge_realms_speciesdata_into_world(path='./output/mammals/tables/')
+#copy grid_*100.rds to /output/grids/
+merge_realms_grid_into_world(path='./output/grids/')
+#then use IUCN taxonomy on them (this is redundant)
+source('./R/taxonomy_IUCN_birdlife.R')
+mammals_grid.table<-read.table('./output/mammals/tables/100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+mammals_grid.table.IUCN<-iucn.taxonomy.synonyms(species=mammals_grid.table$spp,dictionaryfile = './raw_data/IUCNTaxonomy_Mammalia_30082017_version2017-1.csv')
+mammals_grid.table$spp<-mammals_grid.table.IUCN
+#deal with duplicates: merge the ranges
+duplicated.mammals_grid.table.spp<-mammals_grid.table$spp[duplicated(mammals_grid.table$spp)]
+if(length(duplicated.birds_grid.table.spp)>0){
+  mammals_grid.table<-merge_duplicates_in_speciesgridoccurrence_table(duplicated.species = duplicated.mammals_grid.table.spp,species.gridoccurrence.table = mammals_grid.table)  
+}
+write.table(mammals_grid.table,'./output/mammals/tables/mammals_100_all_realms_species_gridoccurrence_table.txt',sep='\t',quote=F,row.names=F)
 
+#####overlap bird birdlife range layers with grid####
+#BOTW.gbd has to be on './raw_data/birds/BOTW/BOTW.gdb/'; run './R/run_split_birds_gb_into_shp.R
+#this will create folders 1,501,1001,1501...18001, each with 500 shapefiles
+source('./R/run_split_birds_gdb_into_shp.R')
+#zip + copy those folders to cluster
+#run './R/overlap_realms_birds_grid_cluster.R' on hydrogen
+#/scripts/conscriptoR /home/ji247/hotspots_vertebrates/overlap_realms_birds_grid_cluster.R -p48 (#for 48 cores,it takes 4-5 days)
+#and then run commented final parts of overlap_realms_birds_grid_cluster.R
+#move the *_realms_species_gridoccurrence_table.txt and *_richness_grid_table.txt to ./output/birds/tables/
+#merge realm based data to world level
+source('./R/merging_all_realm_occurrences.R')
+merge_realms_speciesdata_into_world(path='./output/birds/tables/')
+#copy grid_*100.rds to /output/grids/
+merge_realms_grid_into_world(path='./output/grids/')
+#then use IUCN taxonomy on them (this is redundant)
+source('./R/taxonomy_IUCN_birdlife.R')
+birds_grid.table<-read.table('./output/birds/tables/100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+birds_grid.table.IUCN<-iucn.taxonomy.synonyms(species=birds_grid.table$spp,dictionaryfile = './raw_data/IUCNTaxonomy_Aves_30082017_version2017-1.csv')
+birds_grid.table$spp<-birds_grid.table.IUCN
+#deal with duplicates: merge the ranges
+duplicated.birds_grid.table.spp<-birds_grid.table$spp[duplicated(birds_grid.table$spp)]
+if(length(duplicated.birds_grid.table.spp)>0){
+  birds_grid.table<-merge_duplicates_in_speciesgridoccurrence_table(duplicated.species = duplicated.birds_grid.table.spp,species.gridoccurrence.table = birds_grid.table)  
+}
+write.table(birds_grid.table,'./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',sep='\t',quote=F,row.names=F)
+
+
+####3) DIVERSIFICATION RATE METRICS (DR,BAMM)#####
+####this is taken from github.com/javierigea/hotspots_mambird_paper/
+####measure DR in mammal trees####
+source('./R/measure_DR.R')
+#for mammals
+DR.mammals<-measure_DR_tree_table(treefile = "./output/mammals/mammals_tree_IUCN.tree")
+#select terrestrial
+DR.mammals.marine<-get.marine.species(species = DR.mammals$Species,dictionaryfile = './raw_data/IUCNTaxonomy_Mammalia_30082017_version2017-1.csv')
+DR.mammals.marine<-c(DR.mammals.marine,'Platanista_minor')
+DR.mammals.terrestrial<-DR.mammals[!(DR.mammals$Species%in%DR.mammals.marine),]
+write.table(DR.mammals,'./output/mammals/DR_mammals_tree_IUCN.txt',sep='\t',quote=F,row.names=F)
+write.table(DR.mammals.terrestrial,'./output/mammals/DR_mammals_terrestrial_tree_IUCN.txt',sep='\t',quote=F,row.names=F)
+#for mammals pseudoposterior
+mammals100trees<-read.nexus('./output/mammals/trees/posterior_calibrated/FritzTree.rs200k.100trees_Meredithdates_IUCN.trees')
+DR.mammals.100<-lapply(mammals100trees,function(x)measure_DR_tree_table(x))
+#select terrestrial
+DR.mammals.marine<-get.marine.species(species = DR.mammals.100[[1]]$Species,dictionaryfile = './raw_data/IUCNTaxonomy_Mammalia_30082017_version2017-1.csv')
+DR.mammals.marine<-c(DR.mammals.marine,'Platanista_minor')
+DR.mammals.terrestrial.100<-lapply(DR.mammals.100,function(x)x[!(x$Species%in%DR.mammals.marine),])
+DR.mammals.terrestrial<-DR.mammals[!(DR.mammals$Species%in%DR.mammals.marine),]
+#save object
+saveRDS(DR.mammals.terrestrial.100,file='./output/mammals/trees/DR.mammals.terrestrial.100.rds')
+#get median DR across the pseudoposterior for each species
+get_pseudoposterior_median_DRtable(DR.pseudoposterior.file='./output/mammals/trees/DR.mammals.terrestrial.100.rds',path='./output/mammals/tables/',name='mammals')
+#compare DR from the MCC tree with median of the pseudoposterior
+#this is part of Fig. S2
+source('./R/measure_DR.R')
+pdf('./output/mammals/plots/mammals_DRMCC_vs_pseudoposterior.pdf')
+compare_DR_MCC_vs_medianpseudoposterior(DR.tablefile='./output/mammals/DR_mammals_terrestrial_tree_IUCN.txt',DR.pseudoposterior.tablefile='./all_realms_new_pseudoposteriorDRmedian.txt')
+compare_DR_MCC_vs_allpseudoposterior(DR.tablefile = './output/mammals/DR_mammals_terrestrial_tree_IUCN.txt',DR.pseudoposterior.file ='./output/mammals/trees/DR.mammals.terrestrial.100.rds' )
+dev.off()
+
+####measure DR in bird trees####
+source('./R/measure_DR.R')
+#for birds
+DR.birds<-measure_DR_tree_table(treefile = "./output/birds/birds_tree_IUCN.tree")
+write.table(DR.birds,'./output/birds/DR_birds_tree_IUCN.txt',sep='\t',quote=F,row.names=F)
+#for birds pseudoposterior
+birds100trees<-read.nexus('./output/birds/trees/BirdzillaEricsonAllTrees_100_IUCN.trees')
+counter<-0
+DR.birds.100<-lapply(birds100trees,function(x){counter<<-counter+1;cat(counter,'\n');measure_DR_tree_table(x)})
+#save object
+saveRDS(DR.birds.100,file='./output/birds/trees/DR.birds.100.rds')
+#get median DR across the pseudoposterior for each species
+get_pseudoposterior_median_DRtable(DR.pseudoposterior.file='./output/birds/trees/DR.birds.100.rds',path='./output/birds/tables/',name='all_realms_birds')
+#compare DR from the MCC tree with median of the pseudoposterior
+#this is part of Fig. S2
+source('./R/measure_DR.R')
+pdf('./output/birds/plots/birds_DRMCC_vs_pseudoposterior.pdf')
+compare_DR_MCC_vs_pseudoposterior(DR.tablefile='./output/birds/DR_birds_tree_IUCN.txt',DR.pseudoposterior.tablefile='./output/birds/tables/all_realms_birds_pseudoposteriorDRmedian.txt')
+compare_DR_MCC_vs_allpseudoposterior(DR.tablefile = './output/birds/DR_birds_tree_IUCN.txt',DR.pseudoposterior.file ='./output/birds/trees/DR.birds.100.rds')
+dev.off()
+
+####BAMM analyses####
 #prepare BAMM input
+source('./R/BAMM_functions.R')
+prepare_BAMM_input(treefile='./output/mammals/trees/mammals_tree_IUCN.tree',dictionaryfile = './raw_data/IUCNTaxonomy_Mammalia_30082017_version2017-1.csv',path='./output/mammals/trees/',name='mammals_IUCN_BAMM')
+prepare_BAMM_input(treefile='./output/birds/birds_tree_IUCN.tree',dictionaryfile = './raw_data/IUCNTaxonomy_Aves_30082017_version2017-1.csv',path='./output/birds/trees/',name='birds_IUCN_BAMM')  
+#for mammals it takes ~40 hours (50 million generations), more than enough for convergence (ESS:1200, could work with much less generations) (it took ~80 hours on 4 cores on node 8 - hydrogen)
+#for mammals it takes ~21 hours for 30 million generations; for birds it takes 64 hours for 30 million generations
+#check convergence
+analyse_BAMM_convergence(mcmcout = './output/mammals/trees/mcmc_out_mammals_30m.txt',burnin=0.25)
+analyse_BAMM_convergence(mcmcout = './output/birds/trees/mcmc_out_birds_30m.txt',burnin=0.25)
+#get TipRates
+get_tipRates_BAMM(treefile='./output/mammals/trees/mammals_tree_IUCN.tree',eventfile='./output/mammals/trees/event_data_mammals_30m.txt',burnin=0.25,path='./output/mammals/tables/',name='mammals_all_realms')
+get_tipRates_BAMM(treefile='./output/birds/trees/birds_tree_IUCN.tree',eventfile='./output/birds/trees/event_data_birds_30m.txt',burnin=0.25,path='./output/birds/tables/',name='birds_all_realms')
 
-####3)species occurrence data, grid####
+####4) DIVERSIFICATION RATES IN SPACE####
+####mammal DR metrics in space####
+source('./R/measure_DR.R')
+#read mammals ranges
+mammals.ranges<-read.table('./output/mammals/tables/mammals_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+list.mammals.ranges<-lapply(mammals.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+names(list.mammals.ranges)<-as.character(mammals.ranges$spp)
+#read mammals DR table
+mammalsDR<-read.table('./output/mammals/tables/DR_mammals_terrestrial_tree_IUCN.txt',header=T,sep='\t',stringsAsFactors = F)
+#this takes ca 2 hours
+mammals.DR.grid.table<-DR_stats_grid(list.species.ranges=list.mammals.ranges,speciesDR=mammalsDR)
+write.table(mammals.DR.grid.table,file='./output/mammals/tables/mammals_DR_cells_table.txt',sep='\t',quote=F,row.names=F)
 
-####4)diversification measures in grid####
+####bird DR metrics in space####
+source('./R/measure_DR.R')
+#read birds ranges
+birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+#correct a mistake with Strix_butleri 131632469 should be 13163 2469
+birds.ranges[birds.ranges$spp=='Strix_butleri','cells']<-gsub(birds.ranges[birds.ranges$spp=='Strix_butleri','cells'],pattern='131632469',replacement='13163 2469')
+list.birds.ranges<-lapply(birds.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+names(list.birds.ranges)<-as.character(birds.ranges$spp)
+#read birds DR table
+birdsDR<-read.table('./output/birds/tables/DR_birds_terrestrial_tree_IUCN.txt',header=T,sep='\t',stringsAsFactors = F)
+#this takes ca 2 hours
+birds.DR.grid.table<-DR_stats_grid(list.species.ranges=list.birds.ranges,speciesDR=birdsDR)
+write.table(birds.DR.grid.table,file='./output/birds/tables/birds_DR_cells_table.txt',sep='\t',quote=F,row.names=F)
+
+####5) ELEVATION DATA####
+
 
 ####5)elevation and historic changes in elevation####
 
 ####6)temperature and past temperature####
 
+####B) PLOTS SECTION####
+####B1) plots of spatial variation of wDR####
+source('./R/plots.R')
+#maps of wDR for mammals and birds
+pdf('./plots/mammalsmeanwDR_gridmap.pdf')
+plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=10,positive.values=TRUE)
+dev.off()
+pdf('./plots/mammalsmeanwDR_gridmap_scale.pdf')
+plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=256,positive.values=TRUE)
+dev.off()
+pdf('./plots/birdsmeanwDR_gridmap.pdf')
+plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
+dev.off()
+pdf('./plots/birdsmeanwDR_gridmap_scale.pdf')
+plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=256,positive.values=TRUE)
+dev.off()
 
 

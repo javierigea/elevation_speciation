@@ -17,10 +17,12 @@ dir.create('./plots/')
 dir.create('./output/')
 dir.create('./output/mammals/')
 dir.create('./output/birds/')
+dir.create('./output/world/')
 dir.create('./output/mammals/trees/')
 dir.create('./output/birds/trees/')
 dir.create('./output/mammals/tables/')
 dir.create('./output/birds/tables/')
+dir.create('./output/world/tables/')
 
 ####1) PHYLOGENETIC DATA PREP####
 ####this is taken from github.com/javierigea/hotspots_mambird_paper/
@@ -233,28 +235,80 @@ birdsDR<-read.table('./output/birds/tables/DR_birds_terrestrial_tree_IUCN.txt',h
 birds.DR.grid.table<-DR_stats_grid(list.species.ranges=list.birds.ranges,speciesDR=birdsDR)
 write.table(birds.DR.grid.table,file='./output/birds/tables/birds_DR_cells_table.txt',sep='\t',quote=F,row.names=F)
 
+####mammal BAMM metrics in space####
+source('./R/BAMM_functions.R')
+#read mammals ranges
+mammals.ranges<-read.table('./output/mammals/tables/mammals_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+list.mammals.ranges<-lapply(mammals.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+names(list.mammals.ranges)<-as.character(mammals.ranges$spp)
+#read mammals BAMM table
+mammalsBAMM<-read.table('./output/mammals/tables/BAMM_mammals_terrestrial_tree_IUCN.txt',header=T,sep='\t',stringsAsFactors = F)
+#this takes ca 2 hours
+mammals.BAMM.grid.table<-BAMM_stats_grid(list.species.ranges=list.mammals.ranges,speciesBAMM=mammalsBAMM)
+write.table(mammals.BAMM.grid.table,file='./output/mammals/tables/mammals_BAMM_cells_table.txt',sep='\t',quote=F,row.names=F)
+
+####bird BAMM metrics in space####
+source('./R/BAMM_functions.R')
+#read birds ranges
+birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+#correct a mistake with Strix_butleri 131632469 should be 13163 2469
+birds.ranges[birds.ranges$spp=='Strix_butleri','cells']<-gsub(birds.ranges[birds.ranges$spp=='Strix_butleri','cells'],pattern='131632469',replacement='13163 2469')
+list.birds.ranges<-lapply(birds.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+names(list.birds.ranges)<-as.character(birds.ranges$spp)
+#read birds BAMM table
+birdsBAMM<-read.table('./output/birds/tables/BAMM_birds_terrestrial_tree_IUCN.txt',header=T,sep='\t',stringsAsFactors = F)
+#this takes ca 2 hours
+birds.BAMM.grid.table<-BAMM_stats_grid(list.species.ranges=list.birds.ranges,speciesBAMM=birdsBAMM)
+write.table(birds.BAMM.grid.table,file='./output/birds/tables/birds_BAMM_cells_table.txt',sep='\t',quote=F,row.names=F)
+
 ####5) ELEVATION DATA####
+source('./R/elevation_get_data.R')
+####present day elevation with ETOPO####
+##downloaded from https://www.ngdc.noaa.gov/mgg/global/ (ETOPO1 Ice Surface)
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+present.elevation.table<-get_present_elevation_grid(etopo1.path='./raw_data/rasters/ETOPO1_Ice_g_geotiff.tif',grid=gridWorld)
+write.table(present.elevation.table,file='./output/world/tables/grid_present_agg_elevation_table.txt',sep='\t',quote=F,row.names=F)
+
+####past elevation data with PRISM4####
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+PRISM4.elevation.table<-get_past_elevation_grid(PRISM4.path='./raw_data/rasters/Plio_enh_topo_v1.0_PRISM4.nc',grid=gridWorld)
+write.table(PRISM4.elevation.table,file='./output/world/tables/grid_PRISM4_agg_elevation_table.txt',sep='\t',quote=F,row.names=F)
+
+####6) TEMPERATURE DATA####
+source('./R/temperature_get_data.R')
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+
+#get present temperature values for grid
+present.temperature.table<-get_present_temperature_grid(bio1raster.path='./raw_data/rasters/current_2_5m/bio1.bil',grid=gridWorld)
+write.table(present.temperature.table,file='./output/world/tables/grid_present_temperature_table.txt',sep='\t',quote=F,row.names=F)
+
+#get past temperature values for grid
+past.temperature.table<-get_past_temperature_grid(bio1raster.past.path='./raw_data/rasters/paleoclim_2_5min/bio_1.tif',grid=gridWorld)
+write.table(past.temperature.table,file='./output/world/tables/grid_past_temperature_table.txt',sep='\t',quote=F,row.names=F)
+
+#substract bio1 present minus bio1 past
+bio1_change<-substract_current_minus_past_bio1(path.present='./raw_data/rasters/current_2_5m/bio1.bil',path.past='./raw_data/rasters/paleoclim_2_5min/bio_1.tif')
+writeRaster(bio1_change,'./output/world/bio1_present_minus_past_degreescent')
 
 
-####5)elevation and historic changes in elevation####
+####7)AGGREGATE ALL DIVERSIFICATION AND ELEVATION DATA####
 
-####6)temperature and past temperature####
 
 ####B) PLOTS SECTION####
 ####B1) plots of spatial variation of wDR####
 source('./R/plots.R')
 #maps of wDR for mammals and birds
 pdf('./plots/mammalsmeanwDR_gridmap.pdf')
-plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=10,positive.values=TRUE)
+#plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=10,positive.values=TRUE)
 dev.off()
 pdf('./plots/mammalsmeanwDR_gridmap_scale.pdf')
-plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=256,positive.values=TRUE)
+#plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='mammals.mean.wDR',ncategories=256,positive.values=TRUE)
 dev.off()
 pdf('./plots/birdsmeanwDR_gridmap.pdf')
-plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
+#plot_grid_worldmap_variable(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
 dev.off()
 pdf('./plots/birdsmeanwDR_gridmap_scale.pdf')
-plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=256,positive.values=TRUE)
+#plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=256,positive.values=TRUE)
 dev.off()
 
 

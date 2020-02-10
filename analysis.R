@@ -5,6 +5,8 @@ library(hexbin)
 library(spdep)
 library(ape)
 library(piecewiseSEM)
+library(corrplot)
+library(spatialreg)
 
 ####TO DO: delete local path here####
 setwd('~/Dropbox/Work_in_progress/elevation/')
@@ -24,6 +26,7 @@ dir.create('./output/mammals/tables/')
 dir.create('./output/birds/tables/')
 dir.create('./output/world/tables/')
 
+####---A) DATA PREP---####
 ####1) PHYLOGENETIC DATA PREP####
 ####this is taken from github.com/javierigea/hotspots_mambird_paper/
 ####prepare MCCtree for mammals####
@@ -267,7 +270,7 @@ source('./R/elevation_get_data.R')
 ##downloaded from https://www.ngdc.noaa.gov/mgg/global/ (ETOPO1 Ice Surface)
 gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
 present.elevation.table<-get_present_elevation_grid(etopo1.path='./raw_data/rasters/ETOPO1_Ice_g_geotiff.tif',grid=gridWorld)
-write.table(present.elevation.table,file='./output/world/tables/grid_present_agg_elevation_table.txt',sep='\t',quote=F,row.names=F)
+write.table(present.elevation.table,file='./output/world/tables/grid_present_elevation_table.txt',sep='\t',quote=F,row.names=F)
 
 ####past elevation data with PRISM4####
 gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
@@ -276,25 +279,304 @@ write.table(PRISM4.elevation.table,file='./output/world/tables/grid_PRISM4_agg_e
 
 ####6) TEMPERATURE DATA####
 source('./R/temperature_get_data.R')
-gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
 
+####present temperature data####
 #get present temperature values for grid
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
 present.temperature.table<-get_present_temperature_grid(bio1raster.path='./raw_data/rasters/current_2_5m/bio1.bil',grid=gridWorld)
 write.table(present.temperature.table,file='./output/world/tables/grid_present_temperature_table.txt',sep='\t',quote=F,row.names=F)
 
+####past temperature data####
 #get past temperature values for grid
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
 past.temperature.table<-get_past_temperature_grid(bio1raster.past.path='./raw_data/rasters/paleoclim_2_5min/bio_1.tif',grid=gridWorld)
 write.table(past.temperature.table,file='./output/world/tables/grid_past_temperature_table.txt',sep='\t',quote=F,row.names=F)
 
+#####TO DO: delete this below####
 #substract bio1 present minus bio1 past
-bio1_change<-substract_current_minus_past_bio1(path.present='./raw_data/rasters/current_2_5m/bio1.bil',path.past='./raw_data/rasters/paleoclim_2_5min/bio_1.tif')
-writeRaster(bio1_change,'./output/world/bio1_present_minus_past_degreescent')
+#bio1_change<-substract_current_minus_past_bio1(path.present='./raw_data/rasters/current_2_5m/bio1.bil',path.past='./raw_data/rasters/paleoclim_2_5min/bio_1.tif')
+#writeRaster(bio1_change,'./output/world/bio1_present_minus_past_degreescent')
+#get change in temperature values for grid
+#gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#present.minus.past.temperature.table<-get_change_temperature_grid(raster.path='./output/world/bio1_present_minus_past_degreescent',grid=gridWorld)
+#write.table(past.temperature.table,file='./output/world/tables/grid_past_temperature_table.txt',sep='\t',quote=F,row.names=F)
+
 
 
 ####7)AGGREGATE ALL DIVERSIFICATION AND ELEVATION DATA####
+##open DR & BAMM tables for mammals and birds
+DRmammals<-read.table('./output/mammals/tables/mammals_DR_cells_table.txt',header=T,sep='\t',stringsAsFactors = F)
+colnames(DRmammals)[c(2,3,4)]<-paste0('mammals.',colnames(DRmammals)[c(2,3,4)])
+DRbirds<-read.table('./output/birds/tables/birds_DR_cells_table.txt',header=T,sep='\t',stringsAsFactors = F)
+colnames(DRbirds)[c(2,3,4)]<-paste0('birds.',colnames(DRbirds)[c(2,3,4)])
+BAMMmammals<-read.table('./output/mammals/tables/mammals_BAMM_cells_table.txt',header=T,sep='\t',stringsAsFactors = F)
+colnames(BAMMmammals)[c(2,3,4)]<-paste0('mammals.',colnames(BAMMmammals)[c(2,3,4)])
+BAMMbirds<-read.table('./output/birds/tables/birds_BAMM_cells_table.txt',header=T,sep='\t',stringsAsFactors = F)
+colnames(BAMMbirds)[c(2,3,4)]<-paste0('birds.',colnames(BAMMbirds)[c(2,3,4)])
+#open elevation and temperature tables
+presentelevation<-read.table('./output/world/tables/grid_present_elevation_table.txt',header=T,sep='\t',stringsAsFactors = F)
+pastelevation<-read.table('./output/world/tables/grid_PRISM4_elevation_table.txt',header=T,sep='\t',stringsAsFactors = F)
+presenttemp<-read.table('./output/world/tables/grid_present_temperature_table.txt',header=T,sep='\t',stringsAsFactors = F)
+pasttemp<-read.table('./output/world/tables/grid_past_temperature_table.txt',header=T,sep='\t',stringsAsFactors = F)
+
+#combine all tables
+Div.all<-Reduce(function(x,y) merge(x=x,y=y,by = "cells"),list(DRmammals, DRbirds, BAMMmammals,BAMMbirds,presentelevation,pastelevation,presenttemp,pasttemp))
+#divide temperature by 10 (200 = 20degrees)
+Div.all$mean.present.T<-Div.all$mean.present.T/10
+Div.all$range.present.T<-Div.all$range.present.T/10
+Div.all$mean.past.T<-Div.all$mean.past.T/10
+Div.all$range.past.T<-Div.all$range.past.T/10
+
+#calculate changes in elevation and in temperature and gains and losses
+Div.all$present.minus.past.elevation<-Div.all$mean.elevation.ETOPO.land-Div.all$mean.elevation.PRISM4.land
+Div.all$present.minus.past.temperature<-Div.all$mean.present.T-Div.all$mean.past.T
+
+#calculate gains and losses in elevation
+Div.all$elevation.gain<-Div.all$present.minus.past.elevation
+Div.all[!is.na(Div.all$elevation.gain)&Div.all$elevation.gain<0,'elevation.gain']<-0
+Div.all$elevation.loss<-Div.all$present.minus.past.elevation
+Div.all[!is.na(Div.all$elevation.loss)&Div.all$elevation.loss>0,'elevation.loss']<-0
+Div.all$elevation.loss<-abs(Div.all$elevation.loss)
+write.table(Div.all,file='./output/all_variables_grid_table.txt',sep='\t',quote=F,row.names = F)
+####---B) ANALYSES ----####
+
+####B1) linear/spatial autocorrelation models####
+####TO DO: put this in a function####
+library(corrplot)
+#prepare data
+#linear models of speciation with present/past/change elevation/temperature
+#with wDR
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.wDR','birds.mean.wDR','mean.elevation.ETOPO.land','mean.elevation.PRISM4.land','mean.present.T','mean.past.T','present.minus.past.elevation','present.minus.past.temperature')]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:9)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.wDR<-log(cells.table$mammals.mean.wDR)
+cells.table$birds.mean.wDR<-log(cells.table$birds.mean.wDR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$mean.elevation.PRISM4.land<-log(cells.table$mean.elevation.PRISM4.land)
+#scale predictors
+cells.table[,c(4:9)]<-apply(cells.table[,c(4:9)],2,function(x)scale(x))
 
 
-####B) PLOTS SECTION####
+####multiple linear regressions for wDR####
+#predicting wDR in mammals and birds using present elevation, change in elevation, present temperature and change in temperature
+lm.mammals.wDR.elevation.temp<-lm(mammals.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table)
+lm.birds.wDR.elevation.temp<-lm(birds.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table)
+
+#linear models of speciation with present/past/change elevation/temperature
+#with wlambda.avg
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.wlambda.avg','birds.mean.wlambda.avg','mean.elevation.ETOPO.land','mean.elevation.PRISM4.land','mean.present.T','mean.past.T','present.minus.past.elevation','present.minus.past.temperature')]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:9)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.wlambda.avg<-log(cells.table$mammals.mean.wlambda.avg)
+cells.table$birds.mean.wlambda.avg<-log(cells.table$birds.mean.wlambda.avg)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$mean.elevation.PRISM4.land<-log(cells.table$mean.elevation.PRISM4.land)
+#scale predictors
+cells.table[,c(4:9)]<-apply(cells.table[,c(4:9)],2,function(x)scale(x))
+
+
+####multiple linear regressions for wlambda.avg####
+#predicting wlambda.avg in mammals and birds using present elevation, change in elevation, present temperature and change in temperature
+lm.mammals.wlambda.avg.elevation.temp<-lm(mammals.mean.wlambda.avg~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table)
+lm.birds.wlambda.avg.elevation.temp<-lm(birds.mean.wlambda.avg~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table)
+
+####assessing spatial autocorrelation in residuals####
+#for wDR
+#load grid
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(gridWorld,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+#significant spatial autocorrelation in the residuals (Moran's I)
+moran.lm.mammals.wDR.elevation.temp<-moran.test(lm.mammals.wDR.elevation.temp$residuals,listw = neighbours.1000.w,zero.policy = TRUE)
+moran.lm.birds.wDR.elevation.temp<-moran.test(lm.birds.wDR.elevation.temp$residuals,listw = neighbours.1000.w,zero.policy = TRUE)
+moran.mc.lm.mammals.wDR.elevation.temp<-moran.mc(lm.mammals.wDR.elevation.temp$residuals,listw = neighbours.1000.w,nsim = 1000,zero.policy = TRUE)
+moran.mc.lm.birds.wDR.elevation.temp<-moran.mc(lm.birds.wDR.elevation.temp$residuals,listw = neighbours.1000.w,nsim = 1000,zero.policy = TRUE)
+
+#for wlambda.avg
+#load grid
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(gridWorld,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+#significant spatial autocorrelation in the residuals (Moran's I)
+moran.lm.mammals.wlambda.avg.elevation.temp<-moran.test(lm.mammals.wlambda.avg.elevation.temp$residuals,listw = neighbours.1000.w,zero.policy = TRUE)
+moran.lm.birds.wlambda.avg.elevation.temp<-moran.test(lm.birds.wlambda.avg.elevation.temp$residuals,listw = neighbours.1000.w,zero.policy = TRUE)
+moran.mc.lm.mammals.wlambda.avg.elevation.temp<-moran.mc(lm.mammals.wlambda.avg.elevation.temp$residuals,listw = neighbours.1000.w,nsim = 1000,zero.policy = TRUE)
+moran.mc.lm.birds.wlambda.avg.elevation.temp<-moran.mc(lm.birds.wlambda.avg.elevation.temp$residuals,listw = neighbours.1000.w,nsim = 1000,zero.policy = TRUE)
+
+
+####spatial autocorrelation models####
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#for wDR
+sarlm.mammals.wDR.elevation.temp<-errorsarlm(mammals.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam')
+sarlm.birds.wDR.elevation.temp<-errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam')
+
+#for wlambda.avg
+sarlm.mammals.wlambda.avg.elevation.temp<-errorsarlm(mammals.mean.wlambda.avg~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam')
+sarlm.birds.wlambda.avg.elevation.temp<-errorsarlm(birds.mean.wlambda.avg~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam')
+
+####B2) sems####
+
+####B2_1) sems with all cells####
+#prepare data
+#with wDR
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.wDR','birds.mean.wDR','mean.elevation.ETOPO.land','mean.elevation.PRISM4.land','mean.present.T','mean.past.T','present.minus.past.elevation','present.minus.past.temperature')]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:9)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.wDR<-log(cells.table$mammals.mean.wDR)
+cells.table$birds.mean.wDR<-log(cells.table$birds.mean.wDR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$mean.elevation.PRISM4.land<-log(cells.table$mean.elevation.PRISM4.land)
+#scale predictors
+cells.table[,c(4:9)]<-apply(cells.table[,c(4:9)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.wDR.elevation.temp<-psem(errorsarlm(mammals.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none')
+sarlm.sem.birds.wDR.elevation.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none')
+
+
+
+
+####B2_2) sems looking at elevation gain only####
+
+#prepare data
+#with wDR
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.wDR','birds.mean.wDR','mean.elevation.ETOPO.land','mean.present.T','elevation.gain','present.minus.past.temperature')]
+#get columns where elevation.gain >0
+cells.table<-cells.table[cells.table$elevation.gain>0,]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:7)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.wDR<-log(cells.table$mammals.mean.wDR)
+cells.table$birds.mean.wDR<-log(cells.table$birds.mean.wDR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$elevation.gain<-log(cells.table$elevation.gain)
+#scale predictors
+cells.table[,c(4:7)]<-apply(cells.table[,c(4:7)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.wDR.elevation.gain.temp<-psem(errorsarlm(mammals.mean.wDR~mean.elevation.ETOPO.land+elevation.gain+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.wDR.elevation.gain.temp,standardize = 'none')
+sarlm.sem.birds.wDR.elevation.gain.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+elevation.gain+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.wDR.elevation.gain.temp,standardize = 'none')
+
+####B2_3) sems looking at elevation loss only####
+
+#prepare data
+#with wDR
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.wDR','birds.mean.wDR','mean.elevation.ETOPO.land','mean.present.T','elevation.loss','present.minus.past.temperature')]
+#get columns where elevation.loss >0
+cells.table<-cells.table[cells.table$elevation.loss>0,]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:7)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.wDR<-log(cells.table$mammals.mean.wDR)
+cells.table$birds.mean.wDR<-log(cells.table$birds.mean.wDR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$elevation.loss<-log(cells.table$elevation.loss)
+#scale predictors
+cells.table[,c(4:7)]<-apply(cells.table[,c(4:7)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.wDR.elevation.loss.temp<-psem(errorsarlm(mammals.mean.wDR~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.wDR.elevation.loss.temp,standardize = 'none')
+sarlm.sem.birds.wDR.elevation.loss.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.wDR.elevation.loss.temp,standardize = 'none')
+
+####---C) PLOTS----####
 ####B1) plots of spatial variation of wDR####
 source('./R/plots.R')
 #maps of wDR for mammals and birds
@@ -310,5 +592,7 @@ dev.off()
 pdf('./plots/birdsmeanwDR_gridmap_scale.pdf')
 #plot_grid_worldmap_variable_scalebar(table.env.file='./all.cells.DR.env_16517_mts_coasts_newelevation_gainloss.table.txt',variable='birds.mean.wDR',ncategories=256,positive.values=TRUE)
 dev.off()
+
+#sem plots
 
 

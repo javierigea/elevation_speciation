@@ -26,7 +26,7 @@ extract_data_grid<-function(layer,x,grid){
 ####present day elevation with ETOPO####
 ##downloaded from https://www.ngdc.noaa.gov/mgg/global/ (ETOPO1 Ice Surface)
 ##present, aggregating
-get_present_elevation_grid<-function(etopo1.path,grid){
+get_present_elevation_grid_aggregate<-function(etopo1.path,grid){
   raster.ETOPO<-raster(etopo1.path)
   crs(raster.ETOPO)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
   #open land, merge and check geometry
@@ -48,8 +48,32 @@ get_present_elevation_grid<-function(etopo1.path,grid){
   grid.ETOPO.land.agg.elevation<-lapply(grid.ETOPO.land.agg,function(x)c(mean(x),range(x)[2]-range(x)[1]))
   #and output to table
   grid.ETOPO.land.agg.elevation.df<-as.data.frame(cbind(c(1:length(grid)),unlist(lapply(grid.ETOPO.land.agg.elevation,function(x)x[[1]])),unlist(lapply(grid.ETOPO.land.agg.elevation,function(x)x[[2]]))))
-  colnames(grid.ETOPO.land.agg.elevation.df)<-c('cells','mean.elevation.ETOPO.land','range.elevation.ETOPO.land')
+  colnames(grid.ETOPO.land.agg.elevation.df)<-c('cells','mean.elevation.ETOPO.land.agg','range.elevation.ETOPO.land.agg')
   return(grid.ETOPO.land.agg.elevation.df)
+}
+
+get_present_elevation_grid<-function(etopo1.path,grid){
+  raster.ETOPO<-raster(etopo1.path)
+  crs(raster.ETOPO)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  #open land, merge and check geometry
+  #land polygons including major islands downloaded from https://www.naturalearthdata.com/downloads/10m-physical-vectors/
+  land<-readOGR('./raw_data/ne_10m_land/','ne_10m_land')
+  #plot(land)
+  land<-gUnaryUnion(land)
+  land<-gBuffer(land, width=0)
+  gIsValid(land)
+  #plot(land)
+  #mask with land raster to remove sea
+  #this will get rid of negative elevations (sea values) which would affect the estimates of elevation in coastal cells
+  raster.ETOPO.land<-mask(raster.ETOPO,land)
+  #plot(raster.ETOPO.land)
+  system.time(grid.ETOPO.land<-lapply(c(1:length(grid)),function(x)extract_data_grid(raster.ETOPO.land,x,grid)))
+  #get mean, range and tri within each cell
+  grid.ETOPO.land.elevation<-lapply(grid.ETOPO.land,function(x)c(mean(x),range(x)[2]-range(x)[1]))
+  #and output to table
+  grid.ETOPO.land.elevation.df<-as.data.frame(cbind(c(1:length(grid)),unlist(lapply(grid.ETOPO.land.elevation,function(x)x[[1]])),unlist(lapply(grid.ETOPO.land.elevation,function(x)x[[2]]))))
+  colnames(grid.ETOPO.land.elevation.df)<-c('cells','mean.elevation.ETOPO.land','range.elevation.ETOPO.land')
+  return(grid.ETOPO.land.elevation.df)
 }
 
 get_past_elevation_grid<-function(PRISM4.path,grid){
@@ -67,6 +91,6 @@ get_past_elevation_grid<-function(PRISM4.path,grid){
   system.time(grid.PRISM4<-lapply(c(1:length(grid)),function(x)extract_data_grid(raster.PRISM4.land,x,grid)))
   #get mean elevation in each cell
   grid.PRISM4.df<-as.data.frame(cbind(c(1:length(grid)),unlist(lapply(grid.PRISM4,function(x)mean(x))),unlist(lapply(grid.PRISM4,function(x)range(x)[2]-range(x)[1]))))
-  colnames(grid.PRISM4.df)<-c('cells','mean.elevation.PRISM4','range.elevation.PRISM4')
+  colnames(grid.PRISM4.df)<-c('cells','mean.elevation.PRISM4.land','range.elevation.PRISM4.land')
   return(grid.PRISM4.df)
 }

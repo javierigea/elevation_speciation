@@ -49,7 +49,7 @@ substract_current_minus_past_bio1<-function(path.present,path.past){
 
 get_present_temperature_grid<-function(bio1raster.path,grid){
   bio1.raster<-raster(bio1raster.path)
-  system.time(grid.currentT<-lapply(c(1:length(grid)),function(x)extract_data_grid(bio1_current_crop,x,grid)))
+  system.time(grid.currentT<-lapply(c(1:length(grid)),function(x)extract_data_grid(bio1.raster,x,grid)))
   grid.currentT.values<-lapply(grid.currentT,function(x)c(mean(x),range(x)[2]-range(x)[1]))
   grid.currentT.values.df<-as.data.frame(cbind(c(1:length(grid)),unlist(lapply(grid.currentT.values,function(x)x[[1]])),unlist(lapply(grid.currentT.values,function(x)x[[2]]))))
   colnames(grid.currentT.values.df)<-c('cells','mean.present.T','range.present.T')
@@ -68,4 +68,15 @@ get_past_temperature_grid<-function(bio1raster.past.path,grid){
   grid.pastT.values.df$mean.past.T[is.na(grid.pastT.values.df$mean.past.T)]<-NA
   return(grid.pastT.values.df)
 }  
-  
+
+get_change_temperature_grid<-function(raster.path,grid){
+  raster<-raster(raster.path)
+  system.time(grid.deltaT<-lapply(c(1:length(grid)),function(x)extract_data_grid(raster,x,grid)))
+  grid.deltaT.values<-lapply(grid.deltaT,function(x)c(mean(x),range(x)[2]-range(x)[1]))
+  grid.deltaT.values.df<-as.data.frame(cbind(c(1:length(grid)),unlist(lapply(grid.deltaT.values,function(x)x[[1]])),unlist(lapply(grid.deltaT.values,function(x)x[[2]]))))
+  colnames(grid.deltaT.values.df)<-c('cells','mean.delta.T','range.delta.T')
+  grid.deltaT.values.df$range.past.T[!is.finite(grid.deltaT.values.df$range.past.T)]<-NA
+  grid.deltaT.values.df$mean.past.T[is.na(grid.deltaT.values.df$mean.past.T)]<-NA
+  return(grid.deltaT.values.df)
+}  
+

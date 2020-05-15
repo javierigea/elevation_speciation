@@ -229,6 +229,14 @@ mammalsDR<-read.table('./output/mammals/tables/DR_mammals_terrestrial_tree_IUCN.
 mammals.DR.grid.table<-DR_stats_grid(list.species.ranges=list.mammals.ranges,speciesDR=mammalsDR)
 write.table(mammals.DR.grid.table,file='./output/mammals/tables/mammals_DR_cells_table.txt',sep='\t',quote=F,row.names=F)
 
+####mammal pseudoposterior DR metrics in space####
+#this is to be run on hydrogen
+#source('./R/measure_DR.R')
+#run './R/overlap_realms_mammals_grid_cluster.R' on hydrogen
+#/scripts/conscriptoR /home/ji247/hotspots_vertebrates/overlap_realms_mammals_grid_cluster.R -p32 (#for 32 cores,it takes ~20 hours)
+
+#e.g. run: DRmammals_stats_grid_pseudoposterior_replicate
+
 ####bird DR metrics in space####
 source('./R/measure_DR.R')
 #read birds ranges

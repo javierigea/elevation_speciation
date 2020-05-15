@@ -75,4 +75,17 @@ DR_stats_grid<-function(list.species.ranges.DR,speciesDR){
   return(species.cells.DR)
 }
 
+DRmammals_stats_grid_pseudoposterior_replicate <- function(replicate) {
+  source('./R/measure_DR.R')
+  #read mammals ranges
+  mammals.ranges<-read.table('./output/mammals/tables/mammals_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+  list.mammals.ranges<-lapply(mammals.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+  names(list.mammals.ranges)<-as.character(mammals.ranges$spp)
+  #read mammals DR pseudposterior table
+  mammalsDR<-read.table(paste0('./output/mammals/tables/DR_posterior/DR_mammals_terrestrial_tree_IUCN_', replicate, '.txt'),header=T,sep='\t',stringsAsFactors = F)
+  #this takes ca 2 hours
+  mammals.DR.grid.table<-DR_stats_grid(list.species.ranges=list.mammals.ranges,speciesDR = mammalsDR)
+  write.table(mammals.DR.grid.table,file=paste0('./output/mammals/tables/mammals_DRpseudoposterior_', replicate, '_cells_table.txt'),sep='\t',quote=F,row.names=F)
+}
+
 

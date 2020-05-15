@@ -76,6 +76,8 @@ get_present_elevation_grid<-function(etopo1.path,grid){
   return(grid.ETOPO.land.elevation.df)
 }
 
+#PRISM4 elevation data downloaded from
+#https://geology.er.usgs.gov/egpsc/prism/4_data.html
 get_past_elevation_grid<-function(PRISM4.path,grid){
   raster.PRISM4<-raster(PRISM4.path)
   crs(raster.PRISM4)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"

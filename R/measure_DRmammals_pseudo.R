@@ -1,7 +1,6 @@
 #run model in hydrogen cluster
 .libPaths('/home/ji247/R/x86_64-pc-linux-gnu-library/3.5')
 library(ape)
-library(ape)
 library(picante)
 
 source('./R/measure_DR.R')

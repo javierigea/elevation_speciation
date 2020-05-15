@@ -45,7 +45,7 @@ compare_DR_MCC_vs_allpseudoposterior<-function(DR.tablefile,DR.pseudoposterior.f
   hist(unlist(DR.correlations.pseudoposterior),xlim=c(0,1),breaks=50,yaxs='i',xaxs='i',main='',xlab='Pearsons r correlation',ylab='')
 }
 
-DR_stats_grid<-function(list.species.ranges.DR,speciesDR){
+DR_stats_grid<-function(list.species.ranges,speciesDR){
   #for species
   #calculate meanDR per cell
   list.species.ranges.DR<-lapply(names(list.species.ranges),function(x){species.DR<-rep(speciesDR[speciesDR$Species==x,'DR'],times=length(list.species.ranges[[x]]));if(length(species.DR)==0){return(NA)};names(species.DR)<-list.species.ranges[[x]];species.DR})
@@ -76,7 +76,6 @@ DR_stats_grid<-function(list.species.ranges.DR,speciesDR){
 }
 
 DRmammals_stats_grid_pseudoposterior_replicate <- function(replicate) {
-  source('./R/measure_DR.R')
   #read mammals ranges
   mammals.ranges<-read.table('./output/mammals/tables/mammals_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
   list.mammals.ranges<-lapply(mammals.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})

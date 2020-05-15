@@ -23,7 +23,9 @@ dir.create('./output/world/')
 dir.create('./output/mammals/trees/')
 dir.create('./output/birds/trees/')
 dir.create('./output/mammals/tables/')
+dir.create('./output/mammals/tables/DR_posterior/')
 dir.create('./output/birds/tables/')
+dir.create('./output/birds/tables/DR_posterior/')
 dir.create('./output/world/tables/')
 
 ####---A) DATA PREP---####
@@ -166,6 +168,9 @@ DR.mammals.terrestrial.100<-lapply(DR.mammals.100,function(x)x[!(x$Species%in%DR
 DR.mammals.terrestrial<-DR.mammals[!(DR.mammals$Species%in%DR.mammals.marine),]
 #save object
 saveRDS(DR.mammals.terrestrial.100,file='./output/mammals/trees/DR.mammals.terrestrial.100.rds')
+#write table with 100 tables
+lapply(c(1:100), function(x) write.table(DR.mammals.terrestrial.100[[x]], file = paste0('./output/mammals/tables/DR_posterior/DR_mammals_terrestrial_tree_IUCN_', x, '.txt'), sep = '\t', quote = F, row.names = F))
+
 #get median DR across the pseudoposterior for each species
 get_pseudoposterior_median_DRtable(DR.pseudoposterior.file='./output/mammals/trees/DR.mammals.terrestrial.100.rds',path='./output/mammals/tables/',name='mammals')
 #compare DR from the MCC tree with median of the pseudoposterior

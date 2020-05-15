@@ -232,8 +232,7 @@ write.table(mammals.DR.grid.table,file='./output/mammals/tables/mammals_DR_cells
 ####mammal pseudoposterior DR metrics in space####
 #this is to be run on hydrogen
 #source('./R/measure_DR.R')
-#run './R/overlap_realms_mammals_grid_cluster.R' on hydrogen
-#/scripts/conscriptoR /home/ji247/hotspots_vertebrates/overlap_realms_mammals_grid_cluster.R -p32 (#for 32 cores,it takes ~20 hours)
+#run './R/overlap_realms_mammals_grid_cluster.R  1' on hydrogen
 
 #e.g. run: DRmammals_stats_grid_pseudoposterior_replicate
 

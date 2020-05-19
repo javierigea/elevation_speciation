@@ -24,8 +24,10 @@ dir.create('./output/mammals/trees/')
 dir.create('./output/birds/trees/')
 dir.create('./output/mammals/tables/')
 dir.create('./output/mammals/tables/DR_posterior/')
+dir.create('./output/mammals/tables/DR_posterior/input_tables/')
 dir.create('./output/birds/tables/')
 dir.create('./output/birds/tables/DR_posterior/')
+dir.create('./output/birds/tables/DR_posterior/input_tables/')
 dir.create('./output/world/tables/')
 
 ####---A) DATA PREP---####
@@ -145,6 +147,10 @@ if(length(duplicated.birds_grid.table.spp)>0){
 }
 write.table(birds_grid.table,'./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',sep='\t',quote=F,row.names=F)
 
+#correct a mistake with Strix_butleri 131632469 should be 13163 2469
+birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+birds.ranges[birds.ranges$spp=='Strix_butleri','cells']<-gsub(birds.ranges[birds.ranges$spp=='Strix_butleri','cells'],pattern='131632469',replacement='13163 2469')
+write.table(birds.ranges, './output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',sep='\t',quote=F,row.names=F)
 
 ####3) DIVERSIFICATION RATE METRICS (DR,BAMM)#####
 ####this is taken from github.com/javierigea/hotspots_mambird_paper/
@@ -169,7 +175,7 @@ DR.mammals.terrestrial<-DR.mammals[!(DR.mammals$Species%in%DR.mammals.marine),]
 #save object
 saveRDS(DR.mammals.terrestrial.100,file='./output/mammals/trees/DR.mammals.terrestrial.100.rds')
 #write table with 100 tables
-lapply(c(1:100), function(x) write.table(DR.mammals.terrestrial.100[[x]], file = paste0('./output/mammals/tables/DR_posterior/DR_mammals_terrestrial_tree_IUCN_', x, '.txt'), sep = '\t', quote = F, row.names = F))
+lapply(c(1:100), function(x) write.table(DR.mammals.terrestrial.100[[x]], file = paste0('./output/mammals/tables/DR_posterior/input_tables/DR_mammals_terrestrial_tree_IUCN_', x, '.txt'), sep = '\t', quote = F, row.names = F))
 
 #get median DR across the pseudoposterior for each species
 get_pseudoposterior_median_DRtable(DR.pseudoposterior.file='./output/mammals/trees/DR.mammals.terrestrial.100.rds',path='./output/mammals/tables/',name='mammals')
@@ -192,6 +198,9 @@ counter<-0
 DR.birds.100<-lapply(birds100trees,function(x){counter<<-counter+1;cat(counter,'\n');measure_DR_tree_table(x)})
 #save object
 saveRDS(DR.birds.100,file='./output/birds/trees/DR.birds.100.rds')
+#write table with 100 tables
+lapply(c(1:100), function(x) write.table(DR.birds.100[[x]], file = paste0('./output/birds/tables/DR_posterior/input_tables/DR_birds_tree_IUCN_', x, '.txt'), sep = '\t', quote = F, row.names = F))
+
 #get median DR across the pseudoposterior for each species
 get_pseudoposterior_median_DRtable(DR.pseudoposterior.file='./output/birds/trees/DR.birds.100.rds',path='./output/birds/tables/',name='all_realms_birds')
 #compare DR from the MCC tree with median of the pseudoposterior
@@ -232,16 +241,13 @@ write.table(mammals.DR.grid.table,file='./output/mammals/tables/mammals_DR_cells
 ####mammal pseudoposterior DR metrics in space####
 #this is to be run on hydrogen
 #source('./R/measure_DR.R')
-#run './R/overlap_realms_mammals_grid_cluster.R  1' on hydrogen
-
-#e.g. run: DRmammals_stats_grid_pseudoposterior_replicate
+#run './R/measure_DRmammals_pseudo.R 1' on hydrogen
+#copy tables to './output/mammals/tables/DR_posterior/'
 
 ####bird DR metrics in space####
 source('./R/measure_DR.R')
 #read birds ranges
 birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
-#correct a mistake with Strix_butleri 131632469 should be 13163 2469
-birds.ranges[birds.ranges$spp=='Strix_butleri','cells']<-gsub(birds.ranges[birds.ranges$spp=='Strix_butleri','cells'],pattern='131632469',replacement='13163 2469')
 list.birds.ranges<-lapply(birds.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
 names(list.birds.ranges)<-as.character(birds.ranges$spp)
 #read birds DR table
@@ -249,6 +255,12 @@ birdsDR<-read.table('./output/birds/tables/DR_birds_terrestrial_tree_IUCN.txt',h
 #this takes ca 2 hours
 birds.DR.grid.table<-DR_stats_grid(list.species.ranges=list.birds.ranges,speciesDR=birdsDR)
 write.table(birds.DR.grid.table,file='./output/birds/tables/birds_DR_cells_table.txt',sep='\t',quote=F,row.names=F)
+
+####bird pseudoposterior DR metrics in space####
+#this is to be run on hydrogen
+#source('./R/measure_DR.R')
+#run './R/measure_DRbirds_pseudo.R 1' on hydrogen
+#copy tables to './output/birds/tables/DR_posterior/'
 
 ####mammal BAMM metrics in space####
 source('./R/BAMM_functions.R')
@@ -268,6 +280,7 @@ source('./R/BAMM_functions.R')
 birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
 #correct a mistake with Strix_butleri 131632469 should be 13163 2469
 birds.ranges[birds.ranges$spp=='Strix_butleri','cells']<-gsub(birds.ranges[birds.ranges$spp=='Strix_butleri','cells'],pattern='131632469',replacement='13163 2469')
+
 list.birds.ranges<-lapply(birds.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
 names(list.birds.ranges)<-as.character(birds.ranges$spp)
 #read birds BAMM table

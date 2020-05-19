@@ -1,5 +1,6 @@
 library(ape)
 library(picante)
+library(EnvStats)
 
 #this generates a table with DR metric for all mammal species in the tree
 measure_DR_tree_table<-function(treefile){
@@ -87,4 +88,15 @@ DRmammals_stats_grid_pseudoposterior_replicate <- function(replicate) {
   write.table(mammals.DR.grid.table,file=paste0('./output/mammals/tables/mammals_DRpseudoposterior_', replicate, '_cells_table.txt'),sep='\t',quote=F,row.names=F)
 }
 
+DRbirds_stats_grid_pseudoposterior_replicate <- function(replicate) {
+  #read birds ranges
+  birds.ranges<-read.table('./output/birds/tables/birds_100_all_realms_species_gridoccurrence_table.txt',header=T,sep='\t',stringsAsFactors = F)
+  list.birds.ranges<-lapply(birds.ranges$cells,function(x){char<-unlist(strsplit(as.character(x),' '));char<-char[char!=''];as.numeric(char)})
+  names(list.birds.ranges)<-as.character(birds.ranges$spp)
+  #read birds DR pseudposterior table
+  birdsDR<-read.table(paste0('./output/birds/tables/DR_posterior/DR_birds_tree_IUCN_', replicate, '.txt'),header=T,sep='\t',stringsAsFactors = F)
+  #this takes ca 2 hours
+  birds.DR.grid.table<-DR_stats_grid(list.species.ranges=list.birds.ranges,speciesDR = birdsDR)
+  write.table(birds.DR.grid.table,file=paste0('./output/birds/tables/birds_DRpseudoposterior_', replicate, '_cells_table.txt'),sep='\t',quote=F,row.names=F)
+}
 

@@ -7,7 +7,7 @@ library(ape)
 library(piecewiseSEM)
 library(corrplot)
 library(spatialreg)
-
+library(rgdal)
 ####TO DO: delete local path here####
 setwd('~/Dropbox/Work_in_progress/elevation/')
 
@@ -29,6 +29,9 @@ dir.create('./output/birds/tables/')
 dir.create('./output/birds/tables/DR_posterior/')
 dir.create('./output/birds/tables/DR_posterior/input_tables/')
 dir.create('./output/world/tables/')
+dir.create('./output/world/sems/')
+dir.create('./output/world/sems/pseudoposterior/')
+
 
 ####---A) DATA PREP---####
 ####1) PHYLOGENETIC DATA PREP####
@@ -538,6 +541,10 @@ coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none')
 sarlm.sem.birds.wDR.elevation.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
 coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none')
 
+#for pseudoposteriors: #sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+source('./R/generate_sems.R')
+system.time(sem_spatial_pseudoposterior(variables_table = './output/all_variables_grid_table.txt', 
+                            replicate = 2))
 ####with wlambda.avg
 #prepare data
 cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)

@@ -244,6 +244,17 @@ write.table(mammals.DR.grid.table,file='./output/mammals/tables/mammals_DR_cells
 #run './R/measure_DRmammals_pseudo.R 1' on hydrogen
 #copy tables to './output/mammals/tables/DR_posterior/'
 
+#checking the correlation of wDR with MCC tree and wDR across the pseudoposterior
+DRmammals <- read.table('./output/mammals/tables/mammals_DR_cells_table.txt',
+                 header = T, 
+                 sep = '\t', 
+                 stringsAsFactors = F)
+
+DRpseudomammals <- lapply (list.files('./output/mammals/tables/DR_posterior/', '_cells_table.txt'), function(x) read.table(paste0('../../elevation/output/mammals/tables/DR_posterior/',x), sep = '\t', header = T, stringsAsFactors = F))
+hist(unlist(lapply(DRpseudomammals, function(x) cor.test(x$mean.wDR, DRmammals$mean.wDR, method = 's')$estimate)))
+#very strong positive correlation
+
+
 ####bird DR metrics in space####
 source('./R/measure_DR.R')
 #read birds ranges
@@ -261,6 +272,16 @@ write.table(birds.DR.grid.table,file='./output/birds/tables/birds_DR_cells_table
 #source('./R/measure_DR.R')
 #run './R/measure_DRbirds_pseudo.R 1' on hydrogen
 #copy tables to './output/birds/tables/DR_posterior/'
+
+#checking the correlation of wDR with MCC tree and wDR across the pseudoposterior
+DRbirds <- read.table('./output/birds/tables/birds_DR_cells_table.txt',
+                      header = T, 
+                      sep = '\t', 
+                      stringsAsFactors = F)
+
+DRpseudobirds <- lapply (list.files('./output/birds/tables/DR_posterior/', '_cells_table.txt'), function(x) read.table(paste0('../../elevation/output/birds/tables/DR_posterior/',x), sep = '\t', header = T, stringsAsFactors = F))
+hist(unlist(lapply(DRpseudobirds, function(x) cor.test(x$mean.wDR, DRbirds$mean.wDR, method = 's')$estimate)))
+#very strong positive correlation
 
 ####mammal BAMM metrics in space####
 source('./R/BAMM_functions.R')

@@ -31,7 +31,9 @@ dir.create('./output/birds/tables/DR_posterior/input_tables/')
 dir.create('./output/world/tables/')
 dir.create('./output/world/sems/')
 dir.create('./output/world/sems/pseudoposterior/')
-
+dir.create('./output/world/sems/pseudoposterior/global/')
+dir.create('./output/world/sems/pseudoposterior/gain_elevation/')
+dir.create('./output/world/sems/pseudoposterior/loss_elevation/')
 
 ####---A) DATA PREP---####
 ####1) PHYLOGENETIC DATA PREP####
@@ -543,8 +545,8 @@ coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none')
 
 #for pseudoposteriors: #sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
 source('./R/generate_sems.R')
-system.time(sem_spatial_pseudoposterior(variables_table = './output/all_variables_grid_table.txt', 
-                            replicate = 2))
+lapply(c(1:100), function(x) sem_spatial_pseudoposterior(variables_table = './output/all_variables_grid_table.txt', 
+                            replicate = x))
 ####with wlambda.avg
 #prepare data
 cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
@@ -626,6 +628,11 @@ coefs(sarlm.sem.mammals.wDR.elevation.gain.temp,standardize = 'none')
 sarlm.sem.birds.wDR.elevation.gain.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+elevation.gain+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
 coefs(sarlm.sem.birds.wDR.elevation.gain.temp,standardize = 'none')
 
+#for pseudoposteriors: #sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+source('./R/generate_sems.R')
+lapply(c(1:100), function(x) sem_gain_spatial_pseudoposterior(variables_table = './output/all_variables_grid_table.txt', 
+                                                         replicate = x))
+
 ####with wlambda.avg
 cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
 #drop cells where speciation = 0 (there are no species)
@@ -705,6 +712,11 @@ sarlm.sem.mammals.wDR.elevation.loss.temp<-psem(errorsarlm(mammals.mean.wDR~mean
 coefs(sarlm.sem.mammals.wDR.elevation.loss.temp,standardize = 'none')
 sarlm.sem.birds.wDR.elevation.loss.temp<-psem(errorsarlm(birds.mean.wDR~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
 coefs(sarlm.sem.birds.wDR.elevation.loss.temp,standardize = 'none')
+
+#for pseudoposteriors: #sem with sarlm for mammals wDR, elevation, temperature and change elevation and change temperature
+source('./R/generate_sems.R')
+lapply(c(1:100), function(x) sem_loss_spatial_pseudoposterior(variables_table = './output/all_variables_grid_table.txt', 
+                                                              replicate = x))
 
 ####with wlambda.avg
 #prepare data

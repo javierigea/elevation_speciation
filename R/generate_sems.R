@@ -5,6 +5,7 @@ library(piecewiseSEM)
 library(spatialreg)
 library(rgdal)
 
+
 sem_spatial_pseudoposterior <- function(variables_table, replicate){
   #with wDR
   cells.table<-read.table(variables_table, sep='\t',header=T,stringsAsFactors = F)
@@ -205,4 +206,51 @@ sem_loss_spatial_pseudoposterior <- function(variables_table, replicate){
                         replicate,
                         '.rds'))
   
+}
+
+
+get_CI_sems_pseudoposteriors <- function(sems_object, taxa = c('mammals','birds')) {
+  if (taxa == 'mammals'){
+    sems_all_coefs <- lapply(sems_object, function(x) coefs(x[[1]],
+                                                            standardize = 'none'))
+  }else if (taxa == 'birds'){
+    sems_all_coefs <- lapply(sems_object, function(x) coefs(x[[2]],
+                                                            standardize = 'none'))
+  }else{
+    return('input mammals or birds needed')
+  }
+  #CIs for correlation coefficient across the pseudoposteriors
+  sems_all_coefs_summary <- lapply(c(1:nrow(sems_all_coefs[[1]])),
+                                   function(x)
+                                     unlist(lapply(sems_all_coefs,
+                                                   function(y)
+                                                     y[[x,3]])))
+  
+  sems_all_pvalues_summary <- lapply(c(1:nrow(sems_all_coefs[[1]])),
+                                     function(x)
+                                       unlist(lapply(sems_all_coefs,
+                                                     function(y)
+                                                       y[[x,7]])))
+  
+  sems_all_coefs_CI <- lapply(c(1:nrow(sems_all_coefs[[1]])),
+                              function(x)
+                                c(sems_all_coefs[[1]][x,1],
+                                  as.character(sems_all_coefs[[1]][x,2]),
+                                  quantile(sems_all_coefs_summary[[x]],
+                                           c(0.025, 0.5, 0.975))))
+  sems_all_coefs_CI <- as.data.frame(do.call("rbind",
+                                             sems_all_coefs_CI),
+                                     stringsAsFactors=F)
+  colnames(sems_all_coefs_CI) <- c('Response',
+                                   'Predictor',
+                                   'CIlow',
+                                   'Estimate',
+                                   'CIup')
+  sems_all_coefs_CI$CIlow <- as.numeric(sems_all_coefs_CI$CIlow)
+  sems_all_coefs_CI$Estimate <- as.numeric(sems_all_coefs_CI$Estimate)
+  sems_all_coefs_CI$CIup <- as.numeric(sems_all_coefs_CI$CIup)
+  sems_all_coefs_CI$P.Value <- unlist(lapply(sems_all_pvalues_summary, 
+                                             function(x) 
+                                               median(x)))
+  return(sems_all_coefs_CI)
 }

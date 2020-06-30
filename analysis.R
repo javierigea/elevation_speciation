@@ -503,6 +503,23 @@ sarlm.mammals.wlambda.avg.elevation.temp<-errorsarlm(mammals.mean.wlambda.avg~me
 sarlm.birds.wlambda.avg.elevation.temp<-errorsarlm(birds.mean.wlambda.avg~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam')
 
 ####B2) sems####
+####assessing spatial autocorrelation in residuals####
+#for wDR
+#load grid
+gridWorld<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(gridWorld,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+#built sem models without sarlm
+lm.sem.mammals.wDR.elevation.temp<-psem(lm(mammals.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table),lm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table),lm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table),lm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table))
+lm.sem.birds.wDR.elevation.temp<-psem(lm(birds.mean.wDR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table),lm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table),lm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table),lm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table))
+#moran's I (for residuals on wDR)
+moran.lm.sem.mammals.wDR.elevation.temp<-moran.test(residuals(lm.sem.mammals.wDR.elevation.temp)[,1],listw = neighbours.1000.w,zero.policy = TRUE)
+moran.lm.birds.wDR.elevation.temp<-moran.test(residuals(lm.sem.birds.wDR.elevation.temp)[,1],listw = neighbours.1000.w,zero.policy = TRUE)
 
 ####B2_1) sems with all cells####
 
@@ -758,7 +775,7 @@ sarlm.sem.birds.wlambda.avg.elevation.loss.temp<-psem(errorsarlm(birds.mean.wlam
 coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 
 ####---C) PLOTS----####
-####B1) plots of spatial variation of wDR####
+####C1) plots of spatial variation of wDR####
 source('./R/plots.R')
 #maps of wDR for mammals and birds
 pdf('./plots/mammalsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
@@ -769,6 +786,162 @@ pdf('./plots/birdsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
 plot_grid_worldmap_variable_scalebar(table.env.file='./output/all_variables_grid_table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
 dev.off()
 
-#sem plots
+####C2) sem plots#####
+####C2_1) plot sems with all cells####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'),
+                                                               mode = 'single')
+grViz(sarlm.sem.mammals.wDR.elevation.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_main.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.wDR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'), 
+                                                                mode = 'with_CI')
+grViz(sarlm.sem.mammals.wDR.elevation.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_CI.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none'),
+                                                             mode = 'single')
+grViz(sarlm.sem.birds.wDR.elevation.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_main.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.wDR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none'), 
+                                                                mode = 'with_CI')
+grViz(sarlm.sem.birds.wDR.elevation.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_CI.pdf")
+
+####C2_1A) plot sems of pseudoposteriors with all cells####
+source('./R/generate_sems.R')
+#read in the sems generated in B2_1
+sems_all <- lapply(list.files('./output/world/sems/pseudoposterior/global/',
+                              '.rds'), function(x) readRDS(paste0('./output/world/sems/pseudoposterior/global/',
+                                                                  x)))
+#summarise the sems for mammals
+posterior_all_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_all,
+                                                              taxa = 'mammals')
+
+#plot median estimates + CI across pseudoposterior for mammals
+grViz_all_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_all_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_all_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_pseudopos.pdf")
+
+#summarise the sems for birds
+posterior_all_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_all,
+                                                            taxa = 'birds')
+
+#plot median estimates + CI across pseudoposterior for birds
+grViz_all_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_all_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_all_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_pseudopos.pdf")
+
+
+####C2_2) plot sems with cells with elevation gain only####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.gain.temp,standardize = 'none'),
+                                                                    mode = 'single')
+grViz(sarlm.sem.mammals.wDR.elevation.gain.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_main.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.wDR.elevation.gain.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.gain.temp,standardize = 'none'), 
+                                                                       mode = 'with_CI')
+grViz(sarlm.sem.mammals.wDR.elevation.gain.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_CI.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.gain.temp,standardize = 'none'),
+                                                                  mode = 'single')
+grViz(sarlm.sem.birds.wDR.elevation.gain.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_main.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.wDR.elevation.gain.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.gain.temp,standardize = 'none'), 
+                                                                     mode = 'with_CI')
+grViz(sarlm.sem.birds.wDR.elevation.gain.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_CI.pdf")
+
+####C2_2A) plot seems of pseudoposterior with cells with elevation gain only####
+source('./R/generate_sems.R')
+#read in the sems generated in B2_2
+sems_gain <- lapply(list.files('./output/world/sems/pseudoposterior/gain_elevation/',
+                               '.rds'), function(x) readRDS(paste0('./output/world/sems/pseudoposterior/gain_elevation/',
+                                                                   x)))
+#summarise the sems for mammals
+posterior_gain_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_gain,
+                                                               taxa = 'mammals')
+
+#plot median estimates + CI across pseudoposterior for mammals
+grViz_gain_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_gain_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_pseudopos.pdf")
+
+#summarise the sems for birds
+posterior_gain_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_gain,
+                                                             taxa = 'birds')
+
+#plot median estimates + CI across pseudoposterior for birds
+grViz_gain_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_gain_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_pseudopos.pdf")
+
+
+
+####C2_3) plot sems with cells with elevation loss only####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.loss.temp,standardize = 'none'),
+                                                                    mode = 'single')
+grViz(sarlm.sem.mammals.wDR.elevation.loss.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_main.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.wDR.elevation.loss.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.loss.temp,standardize = 'none'), 
+                                                                       mode = 'with_CI')
+grViz(sarlm.sem.mammals.wDR.elevation.loss.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_CI.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.loss.temp,standardize = 'none'),
+                                                                  mode = 'single')
+grViz(sarlm.sem.birds.wDR.elevation.loss.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_main.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.wDR.elevation.loss.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.loss.temp,standardize = 'none'), 
+                                                                     mode = 'with_CI')
+grViz(sarlm.sem.birds.wDR.elevation.loss.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_CI.pdf")
+####C2_3A) plot seems of pseudoposterior with cells with elevation loss only####
+source('./R/generate_sems.R')
+#read in the sems generated in B2_3
+sems_loss <- lapply(list.files('./output/world/sems/pseudoposterior/loss_elevation/',
+                               '.rds'), function(x) readRDS(paste0('./output/world/sems/pseudoposterior/loss_elevation/',
+                                                                   x)))
+#summarise the sems for mammals
+posterior_loss_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_loss,
+                                                               taxa = 'mammals')
+
+#plot median estimates + CI across pseudoposterior for mammals
+grViz_loss_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_loss_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_pseudopos.pdf")
+
+#summarise the sems for birds
+posterior_loss_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_loss,
+                                                             taxa = 'birds')
+
+#plot median estimates + CI across pseudoposterior for birds
+grViz_loss_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_loss_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_pseudopos.pdf")
+
+
 
 

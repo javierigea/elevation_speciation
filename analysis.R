@@ -944,4 +944,210 @@ grViz(grViz_loss_pseudobirds)%>%
 
 
 
+#####SUPPLEMENTARY ANALYSES#####
+####D1 analyses with meanDR####
+####D1A_1) sems with all cells####
+
+####with DR
+#prepare data
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.DR','birds.mean.DR','mean.elevation.ETOPO.land','mean.elevation.PRISM4.land','mean.present.T','mean.past.T','present.minus.past.elevation','present.minus.past.temperature')]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:9)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.DR<-log(cells.table$mammals.mean.DR)
+cells.table$birds.mean.DR<-log(cells.table$birds.mean.DR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$mean.elevation.PRISM4.land<-log(cells.table$mean.elevation.PRISM4.land)
+#scale predictors
+cells.table[,c(4:9)]<-apply(cells.table[,c(4:9)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals DR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.DR.elevation.temp<-psem(errorsarlm(mammals.mean.DR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.DR.elevation.temp,standardize = 'none')
+sarlm.sem.birds.DR.elevation.temp<-psem(errorsarlm(birds.mean.DR~mean.elevation.ETOPO.land+present.minus.past.elevation+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~present.minus.past.elevation,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.DR.elevation.temp,standardize = 'none')
+
+
+####D1A_2) sems looking at elevation gain only####
+
+####with DR
+#prepare data
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.DR','birds.mean.DR','mean.elevation.ETOPO.land','mean.present.T','elevation.gain','present.minus.past.temperature')]
+#get columns where elevation.gain >0
+cells.table<-cells.table[cells.table$elevation.gain>0,]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:7)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.DR<-log(cells.table$mammals.mean.DR)
+cells.table$birds.mean.DR<-log(cells.table$birds.mean.DR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$elevation.gain<-log(cells.table$elevation.gain)
+#scale predictors
+cells.table[,c(4:7)]<-apply(cells.table[,c(4:7)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals DR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.DR.elevation.gain.temp<-psem(errorsarlm(mammals.mean.DR~mean.elevation.ETOPO.land+elevation.gain+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.DR.elevation.gain.temp,standardize = 'none')
+sarlm.sem.birds.DR.elevation.gain.temp<-psem(errorsarlm(birds.mean.DR~mean.elevation.ETOPO.land+elevation.gain+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.gain,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.DR.elevation.gain.temp,standardize = 'none')
+
+####D1A_3) sems looking at elevation loss only####
+
+####with DR
+#prepare data
+cells.table<-read.table('./output/all_variables_grid_table.txt',sep='\t',header=T,stringsAsFactors = F)
+#drop cells where speciation = 0 (there are no species)
+cells.table<-cells.table[!is.na(cells.table$mammals.mean.DR)&!is.na(cells.table$birds.mean.DR)&cells.table$mammals.mean.DR>0&cells.table$birds.mean.DR>0,]
+#drop cells where past or present elevation is NA or negative
+cells.table<-cells.table[!is.na(cells.table$mean.elevation.ETOPO.land)&!is.na(cells.table$mean.elevation.PRISM4.land)&cells.table$mean.elevation.ETOPO.land>0&cells.table$mean.elevation.PRISM4.land>0,]
+#drop unnecessary columns
+cells.table<-cells.table[,c('cells','mammals.mean.DR','birds.mean.DR','mean.elevation.ETOPO.land','mean.present.T','elevation.loss','present.minus.past.temperature')]
+#get columns where elevation.loss >0
+cells.table<-cells.table[cells.table$elevation.loss>0,]
+cells.table<-cells.table[complete.cases(cells.table),]
+#check correlations among predictors
+corrplot(cor(cells.table[,c(2:7)]),method = 'number')
+#log transform response variables
+cells.table$mammals.mean.DR<-log(cells.table$mammals.mean.DR)
+cells.table$birds.mean.DR<-log(cells.table$birds.mean.DR)
+#log transform other variables with positive values
+cells.table$mean.elevation.ETOPO.land<-log(cells.table$mean.elevation.ETOPO.land)
+cells.table$elevation.loss<-log(cells.table$elevation.loss)
+#scale predictors
+cells.table[,c(4:7)]<-apply(cells.table[,c(4:7)],2,function(x)scale(x))
+
+#load grid
+grid.world<-readRDS('./raw_data/grid_World_RealmsMerged_100.rds')
+#get coordinates
+grid.world.longlat<-lapply(grid.world,function(x) spTransform(x,CRS("+proj=longlat")))
+grid.coordinates<-lapply(grid.world[cells.table$cells],function(x) sp::coordinates(x))
+grid.coordinates<-do.call("rbind", grid.coordinates)
+#get neighbours in 1000km distqnce
+neighbours.1000<-dnearneigh(grid.coordinates,d1=0,d2=1000)
+neighbours.1000.w<-nb2listw(neighbours.1000,style="W",zero.policy = TRUE)
+
+#sem with sarlm for mammals DR, elevation, temperature and change elevation and change temperature
+sarlm.sem.mammals.DR.elevation.loss.temp<-psem(errorsarlm(mammals.mean.DR~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.mammals.DR.elevation.loss.temp,standardize = 'none')
+sarlm.sem.birds.DR.elevation.loss.temp<-psem(errorsarlm(birds.mean.DR~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
+coefs(sarlm.sem.birds.DR.elevation.loss.temp,standardize = 'none')
+
+####D1B_sem plots#####
+####D1B_1) plot sems with all cells####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.DR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.temp,standardize = 'none'),
+                                                              mode = 'single')
+grViz(sarlm.sem.mammals.DR.elevation.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.DR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.temp,standardize = 'none'), 
+                                                                 mode = 'with_CI')
+grViz(sarlm.sem.mammals.DR.elevation.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_CI_meanDR.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.DR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.temp,standardize = 'none'),
+                                                            mode = 'single')
+grViz(sarlm.sem.birds.DR.elevation.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.DR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.temp,standardize = 'none'), 
+                                                               mode = 'with_CI')
+grViz(sarlm.sem.birds.DR.elevation.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_CI_meanDR.pdf")
+
+####D1B_2) plot sems with cells with elevation gain only####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.DR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.gain.temp,standardize = 'none'),
+                                                                   mode = 'single')
+grViz(sarlm.sem.mammals.DR.elevation.gain.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.DR.elevation.gain.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.gain.temp,standardize = 'none'), 
+                                                                      mode = 'with_CI')
+grViz(sarlm.sem.mammals.DR.elevation.gain.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_CI_meanDR.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.DR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.gain.temp,standardize = 'none'),
+                                                                 mode = 'single')
+grViz(sarlm.sem.birds.DR.elevation.gain.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.DR.elevation.gain.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.gain.temp,standardize = 'none'), 
+                                                                    mode = 'with_CI')
+grViz(sarlm.sem.birds.DR.elevation.gain.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_CI_meanDR.pdf")
+
+####D1B_3) plot sems with cells with elevation loss only####
+source ('./R/plot_sems.R')
+
+#point estimates (main figures) for mammals
+sarlm.sem.mammals.DR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.loss.temp,standardize = 'none'),
+                                                                   mode = 'single')
+grViz(sarlm.sem.mammals.DR.elevation.loss.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for mammals
+sarlm.sem.mammals.DR.elevation.loss.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.DR.elevation.loss.temp,standardize = 'none'), 
+                                                                      mode = 'with_CI')
+grViz(sarlm.sem.mammals.DR.elevation.loss.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_CI_meanDR.pdf")
+
+#point estimates (main figures) for birds
+sarlm.sem.birds.DR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.loss.temp,standardize = 'none'),
+                                                                 mode = 'single')
+grViz(sarlm.sem.birds.DR.elevation.loss.temp.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_main_meanDR.pdf")
+
+#estimates with CIs (supp figures) for birds
+sarlm.sem.birds.DR.elevation.loss.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.DR.elevation.loss.temp,standardize = 'none'), 
+                                                                    mode = 'with_CI')
+grViz(sarlm.sem.birds.DR.elevation.loss.temp.CI.grViz) %>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_CI_meanDR.pdf")
+
 

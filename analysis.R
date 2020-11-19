@@ -777,7 +777,6 @@ coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 
 ####---C) PLOTS----####
 
-####TO DO: delete or comment out - not used at the moment####
 ####C2) sem plots#####
 ####C2_1) plot sems with all cells####
 source ('./R/plot_sems.R')

@@ -23,7 +23,10 @@ coefsdf_to_grViz <- function(coefs.df, mode = c('single','with_CI','pseudoposter
   #assign colours to positive and negative effects
   coefs.df[coefs.df$edge_number>0,'edge_colour']<-'tomato'
   coefs.df[coefs.df$edge_number<0,'edge_colour']<-'steelblue'
-  coefs.df$edge_font<-'black'
+  #change colour of number
+  #coefs.df$edge_font<-'black'
+  coefs.df[coefs.df$edge_number>0,'edge_font']<-'tomato'
+  coefs.df[coefs.df$edge_number<0,'edge_font']<-'steelblue'
   #use grey for arrows and font of non-significant edges
   coefs.df[coefs.df$edge_significance>0.05,'edge_font']<-'grey'
   coefs.df[coefs.df$edge_significance>0.05,'edge_colour']<-'grey'

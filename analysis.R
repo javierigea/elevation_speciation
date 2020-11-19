@@ -782,11 +782,13 @@ coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 source ('./R/plot_sems.R')
 
 #point estimates (main figures) for mammals
+#This is Fig. 2a in the Main Text
 sarlm.sem.mammals.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'),
                                                                mode = 'single')
 grViz(sarlm.sem.mammals.wDR.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_main.pdf")
 
+#This is Fig. S1a in the Main Text
 #estimates with CIs (supp figures) for mammals
 sarlm.sem.mammals.wDR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'), 
                                                                 mode = 'with_CI')

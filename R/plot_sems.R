@@ -25,6 +25,7 @@ coefsdf_to_grViz <- function(coefs.df, mode = c('single','with_CI','pseudoposter
   coefs.df[coefs.df$edge_number<0,'edge_colour']<-'steelblue'
   #change colour of number
   #coefs.df$edge_font<-'black'
+  coefs.df$edge_font<-NA
   coefs.df[coefs.df$edge_number>0,'edge_font']<-'tomato'
   coefs.df[coefs.df$edge_number<0,'edge_font']<-'steelblue'
   #use grey for arrows and font of non-significant edges

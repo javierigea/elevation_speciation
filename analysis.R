@@ -11,6 +11,7 @@ library(rgdal)
 ####TO DO: delete local path here####
 setwd('~/Dropbox/Work_in_progress/elevation/')
 
+####TO DO: write raw_data folder contents####
 #raw_data folder contents
 #
 
@@ -775,17 +776,8 @@ sarlm.sem.birds.wlambda.avg.elevation.loss.temp<-psem(errorsarlm(birds.mean.wlam
 coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 
 ####---C) PLOTS----####
-####C1) plots of spatial variation of wDR####
-source('./R/plots.R')
-#maps of wDR for mammals and birds
-pdf('./plots/mammalsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
-plot_grid_worldmap_variable_scalebar(table.env.file='./output/all_variables_grid_table.txt',variable='mammals.mean.wDR',ncategories=10,positive.values=TRUE)
-dev.off()
 
-pdf('./plots/birdsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
-plot_grid_worldmap_variable_scalebar(table.env.file='./output/all_variables_grid_table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
-dev.off()
-
+####TO DO: delete or comment out - not used at the moment####
 ####C2) sem plots#####
 ####C2_1) plot sems with all cells####
 source ('./R/plot_sems.R')
@@ -945,6 +937,19 @@ grViz(grViz_loss_pseudobirds)%>%
 
 
 #####SUPPLEMENTARY ANALYSES#####
+####TO DO: delete spatial variation of wDR plots - not used at the moment####
+####D**) plots of spatial variation of wDR####
+source('./R/plots.R')
+#maps of wDR for mammals and birds
+pdf('./plots/mammalsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
+plot_grid_worldmap_variable_scalebar(table.env.file='./output/all_variables_grid_table.txt',variable='mammals.mean.wDR',ncategories=10,positive.values=TRUE)
+dev.off()
+
+pdf('./plots/birdsmeanwDR_gridmap_scale_NEW.pdf',width=11.69,height=8.27)
+plot_grid_worldmap_variable_scalebar(table.env.file='./output/all_variables_grid_table.txt',variable='birds.mean.wDR',ncategories=10,positive.values=TRUE)
+dev.off()
+
+
 ####D1 analyses with meanDR####
 ####D1A_1) sems with all cells####
 

@@ -782,25 +782,29 @@ coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 source ('./R/plot_sems.R')
 
 #point estimates (main figures) for mammals
-#This is Fig. 2a in the Main Text
+####This is Fig. 2a in the Main Text####
 sarlm.sem.mammals.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'),
                                                                mode = 'single')
 grViz(sarlm.sem.mammals.wDR.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_main.pdf")
 
-#This is Fig. S1a in the Main Text
+####This is Fig. S1a in the Main Text####
+#to generate Fig S1a: use the annotated CIs in plot below to modify Fig 2a
 #estimates with CIs (supp figures) for mammals
 sarlm.sem.mammals.wDR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.temp,standardize = 'none'), 
                                                                 mode = 'with_CI')
 grViz(sarlm.sem.mammals.wDR.elevation.temp.CI.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_CI.pdf")
 
+####This is Fig. 2b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none'),
                                                              mode = 'single')
 grViz(sarlm.sem.birds.wDR.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_main.pdf")
 
+####This is Fig. S1b in the Main Text####
+#to generate Fig S1b: use the annotated CIs in plot below to modify Fig 2a
 #estimates with CIs (supp figures) for birds
 sarlm.sem.birds.wDR.elevation.temp.CI.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.temp,standardize = 'none'), 
                                                                 mode = 'with_CI')
@@ -835,6 +839,7 @@ grViz(grViz_all_pseudobirds)%>%
 ####C2_2) plot sems with cells with elevation gain only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S2a in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.gain.temp,standardize = 'none'),
                                                                     mode = 'single')
@@ -847,6 +852,7 @@ sarlm.sem.mammals.wDR.elevation.gain.temp.CI.grViz <- coefsdf_to_grViz(coefs.df 
 grViz(sarlm.sem.mammals.wDR.elevation.gain.temp.CI.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_CI.pdf")
 
+####This is Fig. S2b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.gain.temp,standardize = 'none'),
                                                                   mode = 'single')
@@ -888,6 +894,7 @@ grViz(grViz_gain_pseudobirds)%>%
 ####C2_3) plot sems with cells with elevation loss only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S3a in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wDR.elevation.loss.temp,standardize = 'none'),
                                                                     mode = 'single')
@@ -900,6 +907,7 @@ sarlm.sem.mammals.wDR.elevation.loss.temp.CI.grViz <- coefsdf_to_grViz(coefs.df 
 grViz(sarlm.sem.mammals.wDR.elevation.loss.temp.CI.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_CI.pdf")
 
+####This is Fig. S3b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wDR.elevation.loss.temp,standardize = 'none'),
                                                                   mode = 'single')
@@ -1246,12 +1254,14 @@ coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 ####D2B_1) plot sems with all cells####
 source ('./R/plot_sems.R')
 
+####This is Fig. S4a in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.wlambda.avg.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wlambda.avg.elevation.temp,standardize = 'none'),
                                                                        mode = 'single')
 grViz(sarlm.sem.mammals.wlambda.avg.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_lambdaavg_all_main.pdf")
 
+####This is Fig. S4a in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wlambda.avg.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wlambda.avg.elevation.temp,standardize = 'none'),
                                                                      mode = 'single')
@@ -1261,12 +1271,14 @@ grViz(sarlm.sem.birds.wlambda.avg.elevation.temp.grViz) %>%
 ####D2B_2) plot sems with cells with elevation gain only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S5a in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.wlambda.avg.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wlambda.avg.elevation.gain.temp,standardize = 'none'),
                                                                             mode = 'single')
 grViz(sarlm.sem.mammals.wlambda.avg.elevation.gain.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_main_wlambda.avg.pdf")
 
+####This is Fig. S5a in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wlambda.avg.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wlambda.avg.elevation.gain.temp,standardize = 'none'),
                                                                           mode = 'single')
@@ -1276,12 +1288,14 @@ grViz(sarlm.sem.birds.wlambda.avg.elevation.gain.temp.grViz) %>%
 ####D2B_3) plot sems with cells with elevation loss only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S6a in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.wlambda.avg.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.wlambda.avg.elevation.loss.temp,standardize = 'none'),
                                                                             mode = 'single')
 grViz(sarlm.sem.mammals.wlambda.avg.elevation.loss.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_main_wlambda.avg.pdf")
 
+####This is Fig. S6a in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.wlambda.avg.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none'),
                                                                           mode = 'single')
@@ -1413,12 +1427,14 @@ coefs(sarlm.sem.birds.geomean.wlambda.avg.elevation.loss.temp,standardize = 'non
 ####D3B_1) plot sems with all cells####
 source ('./R/plot_sems.R')
 
+####This is Fig. S4b in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wlambda.avg.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wlambda.avg.elevation.temp,standardize = 'none'),
                                                                                mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wlambda.avg.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_lambdaavg_all_main.pdf")
 
+####This is Fig. S4b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wlambda.avg.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wlambda.avg.elevation.temp,standardize = 'none'),
                                                                              mode = 'single')
@@ -1428,12 +1444,14 @@ grViz(sarlm.sem.birds.geomean.wlambda.avg.elevation.temp.grViz) %>%
 ####D3B_2) plot sems with cells with elevation gain only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S5b in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wlambda.avg.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wlambda.avg.elevation.gain.temp,standardize = 'none'),
                                                                                     mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wlambda.avg.elevation.gain.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_main_geomean.wlambda.avg.pdf")
 
+####This is Fig. S5b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wlambda.avg.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wlambda.avg.elevation.gain.temp,standardize = 'none'),
                                                                                   mode = 'single')
@@ -1443,12 +1461,14 @@ grViz(sarlm.sem.birds.geomean.wlambda.avg.elevation.gain.temp.grViz) %>%
 ####DB_3) plot sems with cells with elevation loss only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S6b in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wlambda.avg.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wlambda.avg.elevation.loss.temp,standardize = 'none'),
                                                                                     mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wlambda.avg.elevation.loss.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_main_geomean.wlambda.avg.pdf")
 
+####This is Fig. S6b in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wlambda.avg.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wlambda.avg.elevation.loss.temp,standardize = 'none'),
                                                                                   mode = 'single')
@@ -1580,12 +1600,14 @@ coefs(sarlm.sem.birds.geomean.wDR.elevation.loss.temp,standardize = 'none')
 ####D4B_1) plot sems with all cells####
 source ('./R/plot_sems.R')
 
+####This is Fig. S4c in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wDR.elevation.temp,standardize = 'none'),
                                                                        mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wDR.elevation.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_geomeanwDR_all_main.pdf")
 
+####This is Fig. S4c in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wDR.elevation.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wDR.elevation.temp,standardize = 'none'),
                                                                      mode = 'single')
@@ -1595,12 +1617,14 @@ grViz(sarlm.sem.birds.geomean.wDR.elevation.temp.grViz) %>%
 ####D4B_2) plot sems with cells with elevation gain only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S5c in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wDR.elevation.gain.temp,standardize = 'none'),
                                                                             mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wDR.elevation.gain.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_main_geomeanwDR.pdf")
 
+####This is Fig. S5c in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wDR.elevation.gain.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wDR.elevation.gain.temp,standardize = 'none'),
                                                                           mode = 'single')
@@ -1610,12 +1634,14 @@ grViz(sarlm.sem.birds.geomean.wDR.elevation.gain.temp.grViz) %>%
 ####D4B_3) plot sems with cells with elevation loss only####
 source ('./R/plot_sems.R')
 
+####This is Fig. S6c in the Main Text####
 #point estimates (main figures) for mammals
 sarlm.sem.mammals.geomean.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.mammals.geomean.wDR.elevation.loss.temp,standardize = 'none'),
                                                                             mode = 'single')
 grViz(sarlm.sem.mammals.geomean.wDR.elevation.loss.temp.grViz) %>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_main_geomeanwDR.pdf")
 
+####This is Fig. S6c in the Main Text####
 #point estimates (main figures) for birds
 sarlm.sem.birds.geomean.wDR.elevation.loss.temp.grViz <- coefsdf_to_grViz(coefs.df = coefs(sarlm.sem.birds.geomean.wDR.elevation.loss.temp,standardize = 'none'),
                                                                           mode = 'single')

@@ -129,7 +129,7 @@ coefsdf_to_grViz <- function(coefs.df, mode = c('single','with_CI','pseudoposter
                       '@@4-6'->'@@3-6'[penwidth='@@1-6',label='@@8-6',color='@@5-6',fontcolor='@@6-6']
                       '@@4-7'->'@@3-7'[penwidth='@@1-7',label='@@8-7',color='@@5-7',fontcolor='@@6-7']
                       '@@4-8'->'@@3-8'[penwidth='@@1-8',label='@@8-8',color='@@5-8',fontcolor='@@6-8']
-                      
+                      '@@4-9'->'@@3-9'[penwidth='@@1-9',label='@@8-9',color='@@5-9',fontcolor='@@6-9']
                        }
                        [1]: edge_width
                        [2]: edge_number

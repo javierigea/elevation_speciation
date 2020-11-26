@@ -795,6 +795,64 @@ coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 
 
 ####---C) PLOTS----####
+####C1) total effects (direct + indirect) heatmaps####
+####C1_1) total effects for sems with all cells####
+source('./R/plot_sems.R')
+#This plots the heatmap for Fig 3 in the paper
+##get sum of direct and indirect effects for variables
+sarlm.sem.mammals.wDR.elevation.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','present.minus.past.elevation','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.mammals.wDR.elevation.temp,response = 'mammals.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+sarlm.sem.birds.wDR.elevation.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','present.minus.past.elevation','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.birds.wDR.elevation.temp,response = 'birds.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+##get total effects (direct+indirect)
+sarlm.sem.mammals.wDR.elevation.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.mammals.wDR.elevation.temp.dir.ind.effs[x]+sarlm.sem.mammals.wDR.elevation.temp.dir.ind.effs[x+1])
+sarlm.sem.birds.wDR.elevation.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.birds.wDR.elevation.temp.dir.ind.effs[x]+sarlm.sem.birds.wDR.elevation.temp.dir.ind.effs[x+1])
+#change the order so the change in variable comes first
+sarlm.sem.mammals.wDR.elevation.temp.totaleffs<-sarlm.sem.mammals.wDR.elevation.temp.totaleffs[c(2,1,3,4)]
+sarlm.sem.birds.wDR.elevation.temp.totaleffs<-sarlm.sem.birds.wDR.elevation.temp.totaleffs[c(2,1,3,4)]
+
+#the output is a PDF with 3 pages (for Figs 3a,b,c)
+#the size of the cells has to be edited with Illustrator
+pdf('./plots/heatmaps_sems_allcells.pdf')
+heatmap_mammals_birds(mammals.totaleffects = sarlm.sem.mammals.wDR.elevation.temp.totaleffs,birds.totaleffects = sarlm.sem.birds.wDR.elevation.temp.totaleffs,max.lim=0.4)
+dev.off()
+
+####C1_2) total effects for sems in cells with gain in elevation####
+source('./R/plot_sems.R')
+#This plots the heatmap for Fig 4 in the paper
+##get sum of direct and indirect effects for variables
+sarlm.sem.mammals.wDR.elevation.gain.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','elevation.gain','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.mammals.wDR.elevation.gain.temp,response = 'mammals.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+sarlm.sem.birds.wDR.elevation.gain.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','elevation.gain','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.birds.wDR.elevation.gain.temp,response = 'birds.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+##get total effects (direct+indirect)
+sarlm.sem.mammals.wDR.elevation.gain.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.mammals.wDR.elevation.gain.temp.dir.ind.effs[x]+sarlm.sem.mammals.wDR.elevation.gain.temp.dir.ind.effs[x+1])
+sarlm.sem.birds.wDR.elevation.gain.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.birds.wDR.elevation.gain.temp.dir.ind.effs[x]+sarlm.sem.birds.wDR.elevation.gain.temp.dir.ind.effs[x+1])
+#change the order so the change in variable comes first
+sarlm.sem.mammals.wDR.elevation.gain.temp.totaleffs<-sarlm.sem.mammals.wDR.elevation.gain.temp.totaleffs[c(2,1,3,4)]
+sarlm.sem.birds.wDR.elevation.gain.temp.totaleffs<-sarlm.sem.birds.wDR.elevation.gain.temp.totaleffs[c(2,1,3,4)]
+
+#the output is a PDF with 3 pages (for Figs 4a,c,e)
+#the size of the cells has to be edited with Illustrator
+pdf('./plots/heatmaps_sems_gaincells.pdf')
+heatmap_mammals_birds(mammals.totaleffects = sarlm.sem.mammals.wDR.elevation.gain.temp.totaleffs,birds.totaleffects = sarlm.sem.birds.wDR.elevation.gain.temp.totaleffs,max.lim=0.4)
+dev.off()
+
+####C1_2) total effects for sems in cells with loss in elevation####
+source('./R/plot_sems.R')
+#This plots the heatmap for Fig 4 in the paper
+##get sum of direct and indirect effects for variables
+sarlm.sem.mammals.wDR.elevation.loss.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','elevation.loss','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.mammals.wDR.elevation.loss.temp,response = 'mammals.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+sarlm.sem.birds.wDR.elevation.loss.temp.dir.ind.effs<-unlist(lapply(c('mean.elevation.ETOPO.land','elevation.loss','present.minus.past.temperature','mean.present.T'),function(x){total.eff<-piecewisesem_totaleffects(piecewisesem.object = sarlm.sem.birds.wDR.elevation.loss.temp,response = 'birds.mean.wDR',predictor=x);names(total.eff)<-c(paste(x,'.d',sep=''),paste(x,'.i',sep=''));return(total.eff)}))
+##get total effects (direct+indirect)
+sarlm.sem.mammals.wDR.elevation.loss.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.mammals.wDR.elevation.loss.temp.dir.ind.effs[x]+sarlm.sem.mammals.wDR.elevation.loss.temp.dir.ind.effs[x+1])
+sarlm.sem.birds.wDR.elevation.loss.temp.totaleffs<-sapply(c(1,3,5,7),function(x)sarlm.sem.birds.wDR.elevation.loss.temp.dir.ind.effs[x]+sarlm.sem.birds.wDR.elevation.loss.temp.dir.ind.effs[x+1])
+#change the order so the change in variable comes first
+sarlm.sem.mammals.wDR.elevation.loss.temp.totaleffs<-sarlm.sem.mammals.wDR.elevation.loss.temp.totaleffs[c(2,1,3,4)]
+sarlm.sem.birds.wDR.elevation.loss.temp.totaleffs<-sarlm.sem.birds.wDR.elevation.loss.temp.totaleffs[c(2,1,3,4)]
+
+#the output is a PDF with 3 pages (for Figs 4b,d,f)
+#the size of the cells has to be edited with Illustrator
+pdf('./plots/heatmaps_sems_losscells.pdf')
+heatmap_mammals_birds(mammals.totaleffects = sarlm.sem.mammals.wDR.elevation.loss.temp.totaleffs,birds.totaleffects = sarlm.sem.birds.wDR.elevation.loss.temp.totaleffs,max.lim=0.4)
+dev.off()
+
 
 ####C2) sem plots#####
 ####C2_1) plot sems with all cells####

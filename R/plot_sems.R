@@ -3,8 +3,11 @@ library(piecewiseSEM)
 library(DiagrammeRsvg)
 library(magrittr)
 library(rsvg)
+library(RColorBrewer)
+library(colorspace)
+library(gplots)
 
-########
+###
 #this function modifies a coefs_df from sem to plot the sem later
 coefsdf_to_grViz <- function(coefs.df, mode = c('single','with_CI','pseudoposterior')){
   ##grViz block
@@ -144,4 +147,110 @@ coefsdf_to_grViz <- function(coefs.df, mode = c('single','with_CI','pseudoposter
   return(grViz)
   
 }
-########
+###
+
+###
+#this function returns the direct and indirect effects of a predictor on a response using a piecewisesem object
+piecewisesem_totaleffects<-function(piecewisesem.object,response,predictor){
+  df.coefficients<-coefs(piecewisesem.object,standardize = 'none')
+  df.coefficients$Response<-as.character(df.coefficients$Response)
+  df.coefficients$Predictor<-as.character(df.coefficients$Predictor)
+  df.coefficients$Estimate<-as.numeric(df.coefficients$Estimate)
+  #get the direct effects
+  direct.effect<-df.coefficients[as.character(df.coefficients$Response)==response&as.character(df.coefficients$Predictor)==predictor,]
+  if(nrow(direct.effect)==0){
+    return('no direct effect of predictor on response, double check')
+  }
+  #get indirect effects, which are the mediators
+  indirect.effects<-df.coefficients[as.character(df.coefficients$Response)!=response&as.character(df.coefficients$Predictor)==predictor,]
+  if(nrow(indirect.effects)==0){
+    cat('no indirect effect of predictor on other variables','\n')
+    if(direct.effect['P.Value']>0.05){
+      cat('no significant direct effect of predictor on response','\n')
+      return(c(0,0))
+    }else{
+      return(c(direct.effect['Estimate'],0)) 
+    }
+    
+  }
+  #get the direct effects of the mediators on to the response variable
+  mediators.direct.effects<-apply(indirect.effects,1,function(x)direct.effect<-df.coefficients[df.coefficients$Predictor==x['Response']&df.coefficients$Response==response,'Estimate'])
+  names(mediators.direct.effects)<-apply(indirect.effects,1,function(x)direct.effect<-df.coefficients[df.coefficients$Predictor==x['Response']&df.coefficients$Response==response,'P.Value'])
+  #these are the effects mediated by a single variable
+  #indirect.effects$Estimate*mediators.direct.effects
+  #check if there is another endogenous variable in between the mediators and the response
+  mediators.indirect.effects<-vector("list",length=nrow(indirect.effects))
+  for (i in c(1:nrow(indirect.effects))){
+    ind.df<-df.coefficients[df.coefficients$Predictor == indirect.effects[i,'Response']&df.coefficients$Response!= response,]
+    if(nrow(ind.df)==0){
+      mediators.indirect.effects[[i]]<-c(NA,NA)
+      names(mediators.indirect.effects[[i]])<-c(NA,NA)
+    }else{
+      ind.df.aux<-df.coefficients[df.coefficients$Predictor == ind.df[1,'Response']&df.coefficients$Response==response,]
+      mediators.indirect.effects[[i]]<-c(ind.df['Estimate'],ind.df.aux['Estimate'])
+      names(mediators.indirect.effects[[i]])<-c(as.numeric(ind.df['P.Value']),as.numeric(ind.df.aux['P.Value']))
+    }
+  }
+  
+  #fix the formatting of the list
+  mediators.indirect.effects<-lapply(mediators.indirect.effects,function(x)unlist(x))
+  
+  #aggregate all indirect effects
+  #first check significance of all direct effects of mediator
+  non.sig.direct<-which(as.numeric(names(mediators.direct.effects))>0.05)
+  if(length(non.sig.direct)>0){
+    mediators.direct.effects<-mediators.direct.effects[-non.sig.direct]
+    mediators.direct.effects<-mediators.direct.effects*indirect.effects$Estimate[-non.sig.direct]
+  }else{
+    mediators.direct.effects<-mediators.direct.effects*indirect.effects$Estimate
+  }
+  #then check significance of indirect effects of mediator
+  #check if there are indirect effects of mediators
+  if(all(is.na(unlist(mediators.indirect.effects)))){
+    total.indirect<-sum(mediators.direct.effects)
+  }else{
+    non.sig.indirect<-which(as.numeric(indirect.effects$P.Value)>0.05)
+    if(length(non.sig.direct)>0){
+      indirect.effects<-indirect.effects[-non.sig.direct,]
+      mediators.indirect.effects<-mediators.indirect.effects[-non.sig.direct]
+    }else{
+      non.sig.indirect.2<-which(unlist(lapply(mediators.indirect.effects,function(x)any(as.numeric(names(x))>0.05)))==T)
+      if(length(non.sig.direct)>0){
+        mediators.indirect.effects<-mediators.indirect.effects[-non.sig.indirect.2]
+      }
+    }
+    mediators.indirect.effects<-unlist(lapply(mediators.indirect.effects,function(x)prod(x)))
+    mediators.indirect.effects[is.na(mediators.indirect.effects)]<-0
+    total.indirect<-sum(mediators.direct.effects)+sum(indirect.effects$Estimate*mediators.indirect.effects)
+    
+  }
+  if(direct.effect['P.Value']<0.05){
+    return(c(direct.effect['Estimate'],total.indirect)) 
+  }else{
+    return(c(0,total.indirect)) 
+  }
+  
+}
+
+###
+#this function outputs heatmaps for all variables, for "variable type" (=aggregating elevation and temperature variables)
+#and for "time of the variable" (=aggregating present values vs change in values)
+#max.lim is the maximum value for the heatmap
+#heatmap.2 cannot be used in a multicolumn/row layout
+heatmap_mammals_birds<-function(mammals.totaleffects,birds.totaleffects,max.lim){
+  colfunc <- colorRampPalette(c("blue","red"))
+  #build matrix; rows are variable; cols are mammals and birds
+  heatmap.matrix.all<-cbind(mammals.totaleffects,birds.totaleffects)
+  colnames(heatmap.matrix.all)<-c('mammals','birds')
+  row.names(heatmap.matrix.all)<-gsub(row.names(heatmap.matrix.all),pattern='.d$',replacement='')
+  heatmap.2(heatmap.matrix.all, Rowv=NA, Colv=NA, dendrogram='none',col = diverge_hsv(n=100), scale="none",breaks = seq(-max.lim, max.lim, length.out = 101), trace='none',margins=c(5,10),keysize = 1,denscol = NA,key.title=NA,key.ylab=NA,sepwidth=c(0.02,0.02),sepcolor="black")
+  
+  heatmap.matrix.variables<-t(cbind((heatmap.matrix.all[1,]+heatmap.matrix.all[2,]),(heatmap.matrix.all[3,]+heatmap.matrix.all[4,])))
+  row.names(heatmap.matrix.variables)<-c('elevation','temperature')
+  heatmap.2(heatmap.matrix.variables, Rowv=NA, Colv=NA, dendrogram='none',col = diverge_hsv(n=100), scale="none",breaks = seq(-max.lim, max.lim, length.out = 101), trace='none',margins=c(5,10),keysize = 1,denscol = NA,key.title=NA,key.ylab=NA,sepwidth=c(0.02,0.02),sepcolor="black")
+  
+  heatmap.matrix.time<-t(cbind((heatmap.matrix.all[1,]+heatmap.matrix.all[3,]),(heatmap.matrix.all[2,]+heatmap.matrix.all[4,])))
+  row.names(heatmap.matrix.time)<-c('change','present')
+  heatmap.2(heatmap.matrix.time, Rowv=NA, Colv=NA, dendrogram='none',col = diverge_hsv(n=100), scale="none",breaks = seq(-max.lim, max.lim, length.out = 101), trace='none',margins=c(5,10),keysize = 1,denscol = NA,key.title=NA,key.ylab=NA,sepwidth=c(0.02,0.02),sepcolor="black")
+}
+###

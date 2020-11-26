@@ -791,6 +791,9 @@ coefs(sarlm.sem.mammals.wlambda.avg.elevation.loss.temp,standardize = 'none')
 sarlm.sem.birds.wlambda.avg.elevation.loss.temp<-psem(errorsarlm(birds.mean.wlambda.avg~mean.elevation.ETOPO.land+elevation.loss+mean.present.T+present.minus.past.temperature,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.elevation.ETOPO.land~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(mean.present.T~mean.elevation.ETOPO.land+present.minus.past.temperature+elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'),errorsarlm(present.minus.past.temperature~elevation.loss,data=cells.table,listw = neighbours.1000.w,zero.policy = TRUE,quiet=FALSE,method='spam'))
 coefs(sarlm.sem.birds.wlambda.avg.elevation.loss.temp,standardize = 'none')
 
+####B3) sems - total effects ####
+
+
 ####---C) PLOTS----####
 
 ####C2) sem plots#####
@@ -836,18 +839,32 @@ sems_all <- lapply(list.files('./output/world/sems/pseudoposterior/global/',
 #summarise the sems for mammals
 posterior_all_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_all,
                                                               taxa = 'mammals')
-
+####This is Fig S7a####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for mammals
 grViz_all_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_all_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_all_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_all_sems_mammals_df$CIup <- posterior_all_sems_mammals_df$CIlow
+Viz_all_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_all_sems_mammals_df,mode = 'pseudoposterior')
 grViz(grViz_all_pseudomammals)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_all_pseudopos.pdf")
 
 #summarise the sems for birds
 posterior_all_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_all,
                                                             taxa = 'birds')
-
+####This is Fig S7a####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for birds
 grViz_all_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_all_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_all_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_all_sems_birds_df$CIup <- posterior_all_sems_birds_df$CIlow
+Viz_all_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_all_sems_birds_df,mode = 'pseudoposterior')
 grViz(grViz_all_pseudobirds)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_all_pseudopos.pdf")
 
@@ -890,18 +907,32 @@ sems_gain <- lapply(list.files('./output/world/sems/pseudoposterior/gain_elevati
 #summarise the sems for mammals
 posterior_gain_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_gain,
                                                                taxa = 'mammals')
-
+####This is Fig S7b####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for mammals
 grViz_gain_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_gain_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_gain_sems_mammals_df$CIup <- posterior_gain_sems_mammals_df$CIlow
+Viz_gain_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_mammals_df,mode = 'pseudoposterior')
 grViz(grViz_gain_pseudomammals)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_gain_pseudopos.pdf")
 
 #summarise the sems for birds
 posterior_gain_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_gain,
                                                              taxa = 'birds')
-
+####This is Fig S7b####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for birds
 grViz_gain_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_gain_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_gain_sems_birds_df$CIup <- posterior_gain_sems_birds_df$CIlow
+Viz_gain_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_gain_sems_birds_df,mode = 'pseudoposterior')
 grViz(grViz_gain_pseudobirds)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_gain_pseudopos.pdf")
 
@@ -944,18 +975,32 @@ sems_loss <- lapply(list.files('./output/world/sems/pseudoposterior/loss_elevati
 #summarise the sems for mammals
 posterior_loss_sems_mammals_df <- get_CI_sems_pseudoposteriors(sems_object = sems_loss,
                                                                taxa = 'mammals')
-
+####This is Fig S7c####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for mammals
 grViz_loss_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_mammals_df,mode = 'pseudoposterior')
+grViz(grViz_loss_pseudomammals)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_loss_sems_mammals_df$CIup <- posterior_loss_sems_mammals_df$CIlow
+Viz_loss_pseudomammals <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_mammals_df,mode = 'pseudoposterior')
 grViz(grViz_loss_pseudomammals)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_mammals_loss_pseudopos.pdf")
 
 #summarise the sems for birds
 posterior_loss_sems_birds_df <- get_CI_sems_pseudoposteriors(sems_object = sems_loss,
                                                              taxa = 'birds')
-
+####This is Fig S7c####
+#use this below to generate CIs to annotate on the Figure
 #plot median estimates + CI across pseudoposterior for birds
 grViz_loss_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_birds_df,mode = 'pseudoposterior')
+grViz(grViz_loss_pseudobirds)%>%
+  export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_pseudopos_CIs.pdf")
+#and use this to generate the Figure
+#removing the CIs to plot just the median
+posterior_loss_sems_birds_df$CIup <- posterior_loss_sems_birds_df$CIlow
+Viz_loss_pseudobirds <- coefsdf_to_grViz(coefs.df = posterior_loss_sems_birds_df,mode = 'pseudoposterior')
 grViz(grViz_loss_pseudobirds)%>%
   export_svg %>% charToRaw %>% rsvg_pdf("./plots/sem_birds_loss_pseudopos.pdf")
 
